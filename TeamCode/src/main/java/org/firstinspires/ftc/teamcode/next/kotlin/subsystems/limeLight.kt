@@ -22,7 +22,7 @@ object limeLight : Subsystem {
     // Distance calculation constants (from previous info)
     var llAngle = 9.895942 // Limelight mounting angle in degrees (was 0 in your original code)
     var llLensHeight = 10.2756  // Height of limelight lens in inches (from your original)
-    var goalHeight = 18.00  // Height of target in inches (from your original)
+    var goalHeight = 29.5  // Height of target in inches (from your original)
 
     // Auto-alignment settings
     var autoAlignEnabled: Boolean = false
