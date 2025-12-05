@@ -27,10 +27,9 @@ class Meet2: NextFTCOpMode() {
 
     init {
         addComponents(
-            SubsystemComponent(Intake, Outtake, DriveTrain, limeLight),
-
-            BulkReadComponent,
-            BindingsComponent,
+           SubsystemComponent(Intake, Outtake, DriveTrain, limeLight),
+           BulkReadComponent,
+           BindingsComponent,
         )
     }
 
