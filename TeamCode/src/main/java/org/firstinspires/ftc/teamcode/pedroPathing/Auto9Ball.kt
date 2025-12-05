@@ -68,7 +68,7 @@ class PedroAutonomous : NextFTCOpMode() {
             addLine("Y: ${"%.2f".format(follower.pose.y)}")
             addLine("Heading: ${"%.2f".format(Math.toDegrees(follower.pose.heading))}°")
             addLine()
-            addLine(Outtake.getTelemetryString())
+            //addLine(Outtake.getTelemetryString())
             update()
         }
     }
@@ -93,7 +93,7 @@ class PedroAutonomous : NextFTCOpMode() {
         private val shootWithDistance = InstantCommand {
             val distance = limeLight.getDistanceToTarget()
             if (distance != null && distance > 0) {
-                Outtake.setVelocityForDistance(distance)
+                //Outtake.setVelocityForDistance(distance)
             } else {
                 Outtake.flywheelOn.run()
             }

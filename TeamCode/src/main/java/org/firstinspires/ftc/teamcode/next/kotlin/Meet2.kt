@@ -72,8 +72,8 @@ class Meet2: NextFTCOpMode() {
 
             addLine(limeLight.getTelemetryString())
             //addLine(limeLight.getDistanceDebugInfo())
-            addLine(Outtake.getTelemetryString())
-            addLine(Outtake.getDebugInfo())
+            //addLine(Outtake.getTelemetryString())
+            //addLine(Outtake.getDebugInfo())
 
 
             // Optional: Add debug info
