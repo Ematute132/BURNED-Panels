@@ -23,7 +23,6 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants
 @TeleOp(name = "Meet2-3:28am")
 class Meet2: NextFTCOpMode() {
     var tele = JoinedTelemetry(PanelsTelemetry.ftcTelemetry, telemetry)
-    val resetYaw = DriveTrain.imu.zeroed()
 
 
 
@@ -70,7 +69,7 @@ class Meet2: NextFTCOpMode() {
         tele.run {
 
 
-            addLine(limeLight.getTelemetryString())
+            //addLine(limeLight.getTelemetryString())
             //addLine(limeLight.getDistanceDebugInfo())
             //addLine(Outtake.getTelemetryString())
             //addLine(Outtake.getDebugInfo())

@@ -23,18 +23,18 @@ object Outtake : Subsystem {  // Added parentheses
 
     // ==================== CONTROL SYSTEM ====================
     @JvmField
-    var pid = PIDCoefficients(0.0033, 0.0, 0.0)
+    //var pid = PIDCoefficients(0.0033, 0.0, 0.0)
 
-    @JvmField
-    var ff = BasicFeedforwardParameters(1.66667E-4, 0.0, 0.003)
+    //@JvmField
+    //var ff = BasicFeedforwardParameters(1.66667E-4, 0.0, 0.003)
 
-    var controller = controlSystem {
-        velPid(pid)
-        basicFF(ff)
-    }
+   // var controller = controlSystem {
+      //  velPid(pid)
+       // basicFF(ff)
+   // }
 
     // ==================== TARGET VELOCITY ====================
-    @JvmField
+   // @JvmField
     var targetVelo = 0.0
     var fP = 0.0
 

@@ -32,7 +32,7 @@ object DriveTrain: Subsystem {
 
 
     @JvmField
-    var sensistivity = 0.6
+    var sensistivity = 1.0
 
     var currentPose = Pose(0.0,0.0,0.0)
     val distanceFromGoal = 0
