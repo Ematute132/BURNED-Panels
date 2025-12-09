@@ -14,7 +14,9 @@ import dev.nextftc.hardware.impl.IMUEx
 import kotlinx.coroutines.flow.DEFAULT_CONCURRENCY
 import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Intake
 import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Outtake
-import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.limeLight
+import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Outtake.autoAdjustVelocity
+import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Limelight.limeLight
+import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Limelight.limeLight.distanceToGoal
 import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain
 import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain.ResetImu
 import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain.imu
@@ -41,25 +43,21 @@ class Meet2: NextFTCOpMode() {
         Gamepads.gamepad1.leftTrigger.greaterThan(0.3) whenBecomesTrue Intake.runIntake whenBecomesFalse Intake.stopIntake
         Gamepads.gamepad1.rightBumper whenBecomesTrue Intake.reverseIntakeSlow whenBecomesFalse Intake.stopIntake
 
-        Gamepads.gamepad1.rightTrigger.greaterThan(0.3) whenBecomesTrue Outtake.flywheelOn whenBecomesFalse Outtake.flywheelOff
-        // Flywheel Controls - Distance-based shooting
-        // Flywheel Controls - Distance-based shooting
-        /*Gamepads.gamepad1.rightTrigger.greaterThan(0.3) whenBecomesTrue {
-            // Get distance from limelight and set appropriate velocity
-            val distance = limeLight.getDistanceToTarget()
-            if (distance != null && distance > 0) {
-                Outtake.setVelocityForDistance(distance)
-            } else {
-                // Fallback to default velocity if no target
-                Outtake.flywheelOn.run()
-            }
+        Gamepads.gamepad1.rightTrigger.greaterThan(0.3) whenBecomesTrue {
+            autoAdjustVelocity = true
+            Outtake.velocityTrue = true
+        } whenBecomesFalse {
+            autoAdjustVelocity = false
         }
 
-         */
-
-        Gamepads.gamepad1.a whenBecomesTrue Outtake.flywheelOff
+        Gamepads.gamepad1.a whenBecomesTrue {
+            autoAdjustVelocity = false
+            Outtake.flywheelOff.run()
+        }
         Gamepads.gamepad1.b whenBecomesTrue Outtake.flywheelBack
+
         Gamepads.gamepad1.triangle whenBecomesTrue {ResetImu()}
+
         // Limelight Auto-Align Controls
         //Gamepads.gamepad1.triangle whenBecomesTrue { limeLight.autoAlignEnabled() }
        // Gamepads.gamepad1.square whenBecomesTrue { limeLight.disableAutoAlign() }
@@ -80,5 +78,8 @@ class Meet2: NextFTCOpMode() {
 
             update()
         }
+
+        // Continuously update velocity based on distance when auto-adjust is enabled
+
     }
 }
