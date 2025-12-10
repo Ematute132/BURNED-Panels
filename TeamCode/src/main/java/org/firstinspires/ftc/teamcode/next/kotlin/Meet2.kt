@@ -15,8 +15,8 @@ import kotlinx.coroutines.flow.DEFAULT_CONCURRENCY
 import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Intake
 import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Outtake
 import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Outtake.autoAdjustVelocity
-import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Limelight.limeLight
-import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Limelight.limeLight.distanceToGoal
+
+import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.limeLight
 import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain
 import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain.ResetImu
 import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain.imu

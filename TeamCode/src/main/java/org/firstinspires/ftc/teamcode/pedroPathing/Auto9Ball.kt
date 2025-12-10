@@ -19,7 +19,7 @@ import dev.nextftc.ftc.NextFTCOpMode
 import dev.nextftc.ftc.components.BulkReadComponent
 import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Intake
 import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Outtake
-import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.limeLight
+import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Limelight.limeLight
 import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants
 import java.lang.StrictMath.toRadians

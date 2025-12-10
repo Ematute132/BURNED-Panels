@@ -10,199 +10,72 @@ import dev.nextftc.core.commands.utility.InstantCommand
 import dev.nextftc.core.subsystems.Subsystem
 import dev.nextftc.ftc.ActiveOpMode
 import dev.nextftc.hardware.controllable.MotorGroup
+import dev.nextftc.hardware.delegates.Velocity
 import dev.nextftc.hardware.impl.MotorEx
+import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Limelight.limeLight
+import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Limelight.limeLight.distanceToGoal
 import kotlin.math.*
 
 @Configurable
-object Outtake : Subsystem {  // Added parentheses
+object Outtake : Subsystem {
 
     // ==================== HARDWARE ====================
     private val flyR = MotorEx("flyWheelR")
     private val flyL = MotorEx("flyWheelL")
     val fly = MotorGroup(flyL, flyR)
 
-    // ==================== CONTROL SYSTEM ====================
-    @JvmField
-    //var pid = PIDCoefficients(0.0033, 0.0, 0.0)
 
-    //@JvmField
-    //var ff = BasicFeedforwardParameters(1.66667E-4, 0.0, 0.003)
-
-   // var controller = controlSystem {
-      //  velPid(pid)
-       // basicFF(ff)
-   // }
-
-    // ==================== TARGET VELOCITY ====================
-   // @JvmField
     var targetVelo = 0.0
+    var targetOnVelo = 500.0
     var fP = 0.0
+    var autoAdjustVelocity = false
 
 
     @JvmField
     var velocityTrue = true  // Use the VPID
 
-    // ==================== VOLTAGE COMPENSATION ====================
-    @JvmField
-    var nominalVoltage = 12.6  // Voltage when you tuned your PID/FF
 
-    @JvmField
-    var voltageCompensationEnabled = true
+    const val LAUNCH_ANGLE_DEG = 34.36
+    const val SHOOTER_HEIGHT_IN = 12.9774972441
+    const val GOAL_HEIGHT_IN = 37.85
+    const val GRAVITY_IN_PER_S2 = 386.0  // Gravity in inches per second squared (not meters!)
+    const val SHOOTER_DIAMETER_IN = 2.83465
+    const val SHOOTER_RADIUS_IN = SHOOTER_DIAMETER_IN / 2.0
 
-    // ==================== DISTANCE TRACKING ====================
-    @JvmField
-    var manualDistanceInches = 96.0  // Manual distance override
-
-    @JvmField
-    var useManualDistance = true  // Use manual distance vs sensor
+    val HEIGHT_DIFF_IN = GOAL_HEIGHT_IN - SHOOTER_HEIGHT_IN
 
 
 
-    var isSpinning: Boolean = false
-    var lastCalculatedRpm: Double = 0.0
-    var lastCalculatedTicksPerSec: Double = 0.0
-    // Outtake.kt (add these lines)
-    @JvmField var returnDrivePower: Double = 1.0
-    @JvmStatic fun getReturnDrivePower(): Double = returnDrivePower
+    //find velo needed for arc
 
-
-    // ==================== GETTERS ====================
-
-    /*val actualVelo: Double
-        get() = flyR.state.velocity
-
-    val currentVoltage: Double
-        get() = try {
-            ActiveOpMode.hardwareMap.voltageSensor.iterator().next().voltage
-        } catch (e: Exception) {
-            12.0  // Default fallback
-        }
-
-    val voltageCompensation: Double
-        get() = if (voltageCompensationEnabled) nominalVoltage / currentVoltage else 1.0
-
-    val voltageDrop: Double
-        get() = nominalVoltage - currentVoltage
-
-     */
-
-    // ==================== PHYSICS CALCULATIONS ====================
-
-    /**
-     * Calculate the required RPM for the shooter to reach a target at a given distance.
-     * Uses projectile motion physics with a fixed launch angle and shooter height.
-     *
-     * @param distanceInInches Horizontal distance to target in inches
-     * @return Required RPM for the flywheel, or 0.0 if geometry is impossible
-     */
-    /*fun distanceToRequiredRpm(distanceInInches: Double): Double {
+    fun calculateMotorVelocity(distanceToTarget: Double, motorTicksPerRev: Double = 28.0): Double {
+        // Convert angle to radians
         val theta = Math.toRadians(LAUNCH_ANGLE_DEG)
-        val tanTheta = tan(theta)
         val cosTheta = cos(theta)
+        val tanTheta = tan(theta)
 
-        // Physics: required linear velocity
-        val numerator = G_IN_PER_S2 * distanceInInches * distanceInInches
-        val denomInner = SHOOTER_HEIGHT_IN + distanceInInches * tanTheta - GOAL_HEIGHT_IN
-        val denominator = 2.0 * cosTheta * cosTheta * denomInner
+        // Physics formula: v = sqrt(g * d^2 / (2 * cos^2(θ) * (d * tan(θ) - h)))
+        val numerator = GRAVITY_IN_PER_S2 * distanceToTarget * distanceToTarget
+        val denominator = 2.0 * cosTheta * cosTheta * (distanceToTarget * tanTheta - HEIGHT_DIFF_IN)
 
-        // If shot is impossible at this distance/angle, return 0
+        // Guard against impossible geometry
         if (denominator <= 0) return 0.0
 
-        val vInPerSec = sqrt(numerator / denominator)
+        // Calculate linear velocity in inches per second
+        val velocityInPerSec = sqrt(numerator / denominator)
 
-        // Convert linear speed to wheel RPM
-        val rpm = 60.0 * vInPerSec / (2.0 * Math.PI * SHOOTER_RADIUS_IN)
-        return rpm
+        // Convert linear velocity to RPM: v = ω * r → RPM = (v / r) * (60 / 2π)
+        val rpm = 60.0 * velocityInPerSec / (2.0 * PI * SHOOTER_RADIUS_IN)
+
+        // Convert RPM to ticks per second
+        val ticksPerSec = (rpm / 60.0) * motorTicksPerRev
+
+        return ticksPerSec
     }
 
-     */
+    val targetVeloLL = calculateMotorVelocity(distanceToGoal)
 
-    /**
-     * Convert RPM to encoder ticks per second for motor velocity control.
-     */
-    //fun rpmToTicksPerSecond(rpm: Double): Double {
-        //return (rpm / 60.0) * motorTicksPerRev
-   // }
-
-    /**
-     * Set the target velocity based on distance to target.
-     */
-   /* fun setVelocityForDistance(distanceInInches: Double) {
-        lastCalculatedRpm = distanceToRequiredRpm(distanceInInches)
-        lastCalculatedTicksPerSec = rpmToTicksPerSecond(lastCalculatedRpm)
-        targetVelo = lastCalculatedTicksPerSec
-        velocityTrue = true
-    }
-
-    */
-
-    /**
-     * Get current distance to target (either manual or from sensor/vision)
-     */
-   /* private fun getCurrentDistance(): Double {
-        return if (useManualDistance) {
-            manualDistanceInches
-        } else {
-            // TODO: Integrate with Limelight or distance sensor
-            // Example: Limelight.getDistanceToTarget() ?: manualDistanceInches
-            manualDistanceInches  // Fallback to manual
-        }
-    }
-
-    */
-
-    /**
-     * Update target velocity based on current distance
-     */
-   /* private fun updateTargetFromDistance() {
-        val distanceNow = getCurrentDistance()  // Fixed: was calling itself recursively!
-
-        // Low-pass filter to reduce jitter
-        filteredDistanceInches = distanceAlpha * distanceNow + (1.0 - distanceAlpha) * filteredDistanceInches
-
-        lastCalculatedRpm = distanceToRequiredRpm(filteredDistanceInches)
-        lastCalculatedTicksPerSec = rpmToTicksPerSecond(lastCalculatedRpm)
-        targetVelo = lastCalculatedTicksPerSec
-    }
-
-    */
-
-    /**
-     * Run velocity control loop
-     */
-   /* private fun shoot() {  // Renamed from Shoot (lowercase)
-        if (velocityTrue) {
-            // Apply voltage compensation to target velocity
-            compensatedVelo = targetVelo * voltageCompensation
-
-            // Set goal with compensated velocity
-            controller.goal = KineticState(0.0, compensatedVelo)
-
-            // Calculate control output for left motor
-            controlOutput = controller.calculate(flyL.state)
-
-            // Apply to both motors
-            flyL.power = controlOutput
-            flyR.power = controlOutput
-
-            // Update telemetry values
-            velocityError = targetVelo - actualVelo
-            isSpinning = targetVelo > 0
-        } else {
-            // Direct power control (no velocity control)
-            /*isSpinning = fly.power != 0.0
-            velocityError = 0.0
-            compensatedVelo = 0.0
-            controlOutput = fly.power
-             */
-            fly.power = 0.0
-        }
-    }
-
-    */
-
-
-    // ==================== COMMANDS ====================
+    // ==================== GETTERS ====================
 
     val flywheelOff: Command
         get() = InstantCommand {
@@ -222,13 +95,7 @@ object Outtake : Subsystem {  // Added parentheses
 
             fP = -1.0
         }
-    /*val flywheelBackFancy: Command
-        get() = InstantCommand {
-            velocityTrue = false
-            fly.power = -1.0
-        }
 
-     */
     val flywheelOn: Command
         get() = InstantCommand {
            fP = 0.75
@@ -249,29 +116,21 @@ object Outtake : Subsystem {  // Added parentheses
         }
 
 
-    /**
-     * Set manual distance and update velocity
-     */
 
     // ==================== PERIODIC ====================
-
+// fix this so that it works
     override fun periodic() {
-        // Update PID/FF coefficients from dashboard
-        fly.power = fP
-        /*
-        // Always update target from live distance each cycle
-        if (velocityTrue) {
-            updateTargetFromDistance()
-
+        if (autoAdjustVelocity) {
+            val distance = limeLight.getDistanceToTarget()
+            if (distance != null && distance > 0) {
+                Outtake.calculateMotorVelocity(distanceToGoal)
+            } else {
+                // Fallback to default velocity if no target
+                Outtake.targetVelo = Outtake.targetOnVelo
+            }
         }
-
-         */
-
-        // Run the velocity loop
-
     }
 
-    // ==================== TELEMETRY ====================
 
 
 

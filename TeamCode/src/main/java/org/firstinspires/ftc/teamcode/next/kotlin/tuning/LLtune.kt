@@ -5,7 +5,7 @@ import dev.nextftc.core.components.BindingsComponent
 import dev.nextftc.core.components.SubsystemComponent
 import dev.nextftc.ftc.NextFTCOpMode
 import dev.nextftc.ftc.components.BulkReadComponent
-import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.limeLight
+import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Limelight.limeLight
 @TeleOp
 class LLTune:NextFTCOpMode() {
     init {
