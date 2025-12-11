@@ -7,6 +7,8 @@ import dev.nextftc.core.subsystems.Subsystem
 import dev.nextftc.extensions.pedro.PedroComponent.Companion.follower
 import dev.nextftc.ftc.Gamepads
 import dev.nextftc.hardware.driving.MecanumDriverControlled
+import dev.nextftc.hardware.impl.Direction
+import dev.nextftc.hardware.impl.IMUEx
 import dev.nextftc.hardware.impl.MotorEx
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Data.Alliance
 //import org.firstinspires.ftc.teamcode.pedroPathing.Far12
@@ -18,6 +20,9 @@ object DriveTrain: Subsystem {
     val fR = MotorEx("frontRight")
     val bL = MotorEx("backLeft")
     val bR = MotorEx("backRight")
+    val imu = IMUEx("imu", Direction.RIGHT, Direction.UP)
+    val heading: Double
+        get() = imu
 
     @JvmField var alliance = Alliance.RED
     @JvmField var sensitivity = 1.0
