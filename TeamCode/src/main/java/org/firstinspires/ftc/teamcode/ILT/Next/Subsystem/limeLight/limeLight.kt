@@ -5,7 +5,7 @@ import com.qualcomm.hardware.limelightvision.LLResult
 import com.qualcomm.hardware.limelightvision.Limelight3A
 import dev.nextftc.core.subsystems.Subsystem
 import dev.nextftc.ftc.ActiveOpMode
-import org.firstinspires.ftc.teamcode.next.kotlin.data.Motif
+import org.firstinspires.ftc.teamcode.Old.java.kotlin.data.Motif
 import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain
 
 object limeLight : Subsystem {

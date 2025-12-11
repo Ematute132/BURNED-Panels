@@ -1,19 +1,13 @@
-package org.firstinspires.ftc.teamcode.next.kotlin.subsystems
+package org.firstinspires.ftc.teamcode.Old.java.kotlin.subsystems
 
 import com.bylazar.configurables.annotations.Configurable
-import dev.nextftc.control.KineticState
-import dev.nextftc.control.builder.controlSystem
-import dev.nextftc.control.feedback.PIDCoefficients
-import dev.nextftc.control.feedforward.BasicFeedforwardParameters
 import dev.nextftc.core.commands.Command
 import dev.nextftc.core.commands.utility.InstantCommand
 import dev.nextftc.core.subsystems.Subsystem
-import dev.nextftc.ftc.ActiveOpMode
 import dev.nextftc.hardware.controllable.MotorGroup
-import dev.nextftc.hardware.delegates.Velocity
 import dev.nextftc.hardware.impl.MotorEx
-import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Limelight.limeLight
 import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Limelight.limeLight.distanceToGoal
+import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.limeLight
 import kotlin.math.*
 
 @Configurable
@@ -123,10 +117,10 @@ object Outtake : Subsystem {
         if (autoAdjustVelocity) {
             val distance = limeLight.getDistanceToTarget()
             if (distance != null && distance > 0) {
-                Outtake.calculateMotorVelocity(distanceToGoal)
+                calculateMotorVelocity(distanceToGoal)
             } else {
                 // Fallback to default velocity if no target
-                Outtake.targetVelo = Outtake.targetOnVelo
+                targetVelo = targetOnVelo
             }
         }
     }

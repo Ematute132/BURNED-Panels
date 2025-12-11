@@ -12,8 +12,8 @@ import com.pedropathing.util.Timer
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous
 import dev.nextftc.core.components.SubsystemComponent
 import dev.nextftc.ftc.NextFTCOpMode
-import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Intake
-import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Outtake
+import org.firstinspires.ftc.teamcode.Old.java.kotlin.subsystems.Intake
+import org.firstinspires.ftc.teamcode.Old.java.kotlin.subsystems.Outtake
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants
 
 

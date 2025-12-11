@@ -1,26 +1,20 @@
-package org.firstinspires.ftc.teamcode.next.kotlin
+package org.firstinspires.ftc.teamcode.Old.java.kotlin
 
 import com.bylazar.telemetry.PanelsTelemetry
 import com.bylazar.telemetry.JoinedTelemetry
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import dev.nextftc.core.components.BindingsComponent
 import dev.nextftc.core.components.SubsystemComponent
-import dev.nextftc.extensions.pedro.PedroComponent
 import dev.nextftc.ftc.Gamepads
 import dev.nextftc.ftc.NextFTCOpMode
 import dev.nextftc.ftc.components.BulkReadComponent
-import dev.nextftc.hardware.impl.Direction
-import dev.nextftc.hardware.impl.IMUEx
-import kotlinx.coroutines.flow.DEFAULT_CONCURRENCY
-import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Intake
-import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Outtake
-import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.Outtake.autoAdjustVelocity
+import org.firstinspires.ftc.teamcode.Old.java.kotlin.subsystems.Intake
+import org.firstinspires.ftc.teamcode.Old.java.kotlin.subsystems.Outtake
+import org.firstinspires.ftc.teamcode.Old.java.kotlin.subsystems.Outtake.autoAdjustVelocity
 
 import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.limeLight
 import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain
 import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain.ResetImu
-import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain.imu
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants
 
 @TeleOp(name = "Meet2-3:28am")
 class Meet2: NextFTCOpMode() {

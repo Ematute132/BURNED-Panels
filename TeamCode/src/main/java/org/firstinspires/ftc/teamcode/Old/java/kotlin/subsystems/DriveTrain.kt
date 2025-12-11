@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.next.subsystems
 import com.bylazar.configurables.annotations.Configurable
 import com.pedropathing.geometry.Pose
 import com.qualcomm.robotcore.hardware.DcMotor
+import com.qualcomm.robotcore.robot.Robot
 import dev.nextftc.core.commands.Command
 import dev.nextftc.core.subsystems.Subsystem
 import dev.nextftc.ftc.Gamepads
@@ -11,9 +12,12 @@ import dev.nextftc.hardware.driving.MecanumDriverControlled
 import dev.nextftc.hardware.impl.Direction
 import dev.nextftc.hardware.impl.IMUEx
 import dev.nextftc.hardware.impl.MotorEx
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
+
+private val IMUEx.robotYawPitchRollAngles: Any
 
 @Configurable
 object DriveTrain: Subsystem {
@@ -92,7 +96,7 @@ object DriveTrain: Subsystem {
      */
     private fun applyFieldCentricPowers(forward: Double, strafe: Double, turn: Double) {
         // Get robot heading for field-centric transformation
-        val heading = imu.heading
+
 
         // Field-centric transformation
         val rotatedForward = forward * cos(heading) + strafe * sin(heading)
