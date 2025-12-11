@@ -20,9 +20,10 @@ object DriveTrain: Subsystem {
     val fR = MotorEx("frontRight")
     val bL = MotorEx("backLeft")
     val bR = MotorEx("backRight")
+    // gotta change to pinpoint imu ask newyork guy
     val imu = IMUEx("imu", Direction.RIGHT, Direction.UP)
-    val heading: Double
-        get() = imu
+    //val heading: Double
+        //get() = imu
 
     @JvmField var alliance = Alliance.RED
     @JvmField var sensitivity = 1.0
