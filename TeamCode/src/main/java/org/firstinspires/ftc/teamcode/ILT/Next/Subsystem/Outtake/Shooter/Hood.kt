@@ -1,10 +1,12 @@
-package org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake
+package org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Shooter
 
 import com.bylazar.configurables.annotations.Configurable
 import dev.nextftc.core.subsystems.Subsystem
 import dev.nextftc.hardware.impl.ServoEx
 
 @Configurable
+// air sorting
+// move hood
 object Hood: Subsystem {
     private val hoodServo = ServoEx("flap")
     //change this hoodPostiion value based on distance and velo

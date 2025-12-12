@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.next.subsystems
+package org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake
 
 import com.bylazar.configurables.annotations.Configurable
 import com.qualcomm.robotcore.hardware.DcMotor
@@ -10,15 +10,13 @@ import dev.nextftc.core.commands.delays.Delay
 import dev.nextftc.core.commands.groups.SequentialGroup
 import dev.nextftc.core.commands.utility.InstantCommand
 import dev.nextftc.core.subsystems.Subsystem
-import dev.nextftc.ftc.ActiveOpMode
-import dev.nextftc.hardware.impl.FeedbackCRServoEx
-import dev.nextftc.hardware.impl.FeedbackServoEx
 import dev.nextftc.hardware.impl.MotorEx
 import dev.nextftc.hardware.impl.ServoEx
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Data.Alliance
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Intake
-
-import kotlin.math.*
+import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain
+import kotlin.math.PI
+import kotlin.math.atan2
 import kotlin.time.Duration.Companion.seconds
 
 @Configurable
@@ -36,7 +34,7 @@ object Outtake: Subsystem {
 
     @JvmField
     //spin pid
-    var sP = PIDCoefficients(0.0,0.0,0.0)
+    var sP = PIDCoefficients(0.0, 0.0, 0.0)
     var sC = controlSystem {
         posPid(sP)
     }
@@ -45,7 +43,7 @@ object Outtake: Subsystem {
     @JvmField
     var ppr = 537.7
 
-    var rpt = 2*PI/(ppr*gearRatio)
+    var rpt = 2* PI /(ppr*gearRatio)
 
 
     @JvmField
@@ -178,7 +176,7 @@ object Outtake: Subsystem {
         var mu = atan2(ycord - currentY, xcord - currentX)
         var deltaHeading = normalizeAngle(mu - currentHeading)
 
-        val clampedHeading = deltaHeading.coerceIn(-PI/2, PI/2)
+        val clampedHeading = deltaHeading.coerceIn(-PI /2, PI /2)
 
         sC.goal = KineticState(clampedHeading, 0.0)
     }
@@ -212,27 +210,27 @@ object Outtake: Subsystem {
     val aimUp = InstantCommand {
         manualAim += 12
     }
-    val aimDown = InstantCommand{
+    val aimDown = InstantCommand {
         manualAim -= 12
     }
 
     val flywheelOff: InstantCommand =
-        InstantCommand { velocityTrue = true; targetVelo = 0.0;}
+        InstantCommand { velocityTrue = true; targetVelo = 0.0; }
     val flywheelBack: InstantCommand =
         InstantCommand { velocityTrue = false; f1.power = -1.0; f2.power = -1.0 }
     val flywheelOn: InstantCommand =
         InstantCommand { velocityTrue = true; targetVelo = targetOnVelo }
     val flywheelBackSlow: InstantCommand =
-        InstantCommand { velocityTrue = false; f1.power = -0.5; f2.power=-0.5}
+        InstantCommand { velocityTrue = false; f1.power = -0.5; f2.power = -0.5 }
 
 
 
     val outtakeBalls = SequentialGroup(
-        Outtake.flywheelOn,
+        flywheelOn,
         Delay(0.1.seconds),
         Intake.runIntake,
         Delay(0.5.seconds),
-        Outtake.flywheelOff,
+        flywheelOff,
     )
 
 // new york guy helped me got to integrate it with LL

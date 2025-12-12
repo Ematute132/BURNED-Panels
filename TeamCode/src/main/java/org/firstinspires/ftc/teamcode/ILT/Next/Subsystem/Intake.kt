@@ -14,7 +14,7 @@ import com.bylazar.configurables.annotations.Configurable
 import dev.nextftc.core.commands.delays.Delay
 import dev.nextftc.core.commands.groups.SequentialGroup
 import dev.nextftc.hardware.controllable.MotorGroup
-import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.FlyWheel
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Shooter.FlyWheel
 import java.time.Instant
 import kotlin.time.Duration.Companion.seconds
 //optional add a control system and run to velocity
@@ -64,4 +64,7 @@ object Intake: Subsystem {
         FlyWheel.spin
     )
 
+}
+fun indexing(){
+    //this is where the color sorting based of the color sensor will go
 }

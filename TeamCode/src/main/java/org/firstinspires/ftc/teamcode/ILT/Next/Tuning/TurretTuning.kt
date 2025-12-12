@@ -8,10 +8,9 @@ import dev.nextftc.core.components.SubsystemComponent
 import dev.nextftc.extensions.pedro.PedroComponent
 import dev.nextftc.ftc.NextFTCOpMode
 import dev.nextftc.ftc.components.BulkReadComponent
-import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.ImprovedOuttake
-import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Turret
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Shooter.Turret
 import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain
-import org.firstinspires.ftc.teamcode.next.subsystems.Outtake
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Outtake
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants
 

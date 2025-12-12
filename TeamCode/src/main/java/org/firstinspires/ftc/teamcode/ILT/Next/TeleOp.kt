@@ -16,7 +16,7 @@ import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Data.Alliance
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Intake
 import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain
 
-import org.firstinspires.ftc.teamcode.next.subsystems.Outtake
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Outtake
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants
 

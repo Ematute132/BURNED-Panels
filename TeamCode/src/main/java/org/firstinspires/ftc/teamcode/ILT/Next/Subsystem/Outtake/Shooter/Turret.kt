@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake
+package org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Shooter
 
 import dev.nextftc.control.KineticState
 import dev.nextftc.control.builder.controlSystem
@@ -6,10 +6,9 @@ import dev.nextftc.control.feedback.PIDCoefficients
 import dev.nextftc.core.subsystems.Subsystem
 import dev.nextftc.ftc.ActiveOpMode
 import dev.nextftc.hardware.impl.MotorEx
-
 import kotlin.math.PI
-import kotlin.math.atan2
-
+// gotta absolute encoder
+// heading lock
 object Turret: Subsystem {
     //convert this tele into Panels
     //private val tele = MultipleTelemetry(FtcDashboard.getInstance().telemetry, ActiveOpMode.telemetry)
@@ -44,10 +43,10 @@ object Turret: Subsystem {
 
     private fun autoAim() {
         //create the values in LL
-        val mu = atan2(goalY - currentY, goalX - currentX)
-        val deltaHeading = normalizeAngle(imu - currentHeading)
+       // val mu = atan2(goalY - currentY, goalX - currentX)
+       // val deltaHeading = normalizeAngle(imu - currentHeading)
         // create function to get current heading, delta heading and clamp heading
-       val clampedHeading = deltaHeading.coerceIn(-PI, PI)
+       //val clampedHeading = deltaHeading.coerceIn(-PI, PI)
         //turretController.goal = KineticState(clampedHeading, 0.0)
         turret.power = turretController.calculate(KineticState(getYaw(), 0.0))
     }

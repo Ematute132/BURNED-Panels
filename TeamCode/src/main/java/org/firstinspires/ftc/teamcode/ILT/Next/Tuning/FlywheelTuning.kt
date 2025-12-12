@@ -14,7 +14,7 @@ import dev.nextftc.ftc.Gamepads
 import dev.nextftc.ftc.NextFTCOpMode
 import dev.nextftc.ftc.components.BulkReadComponent
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Intake
-import org.firstinspires.ftc.teamcode.next.subsystems.Outtake
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Outtake
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants
 

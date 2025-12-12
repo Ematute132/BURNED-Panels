@@ -39,7 +39,7 @@ object LLAutoTurn : Subsystem {
 
     override fun periodic() {
         // Get current robot position and limelight data
-        currentHeading = DriveTrain.currentPose.heading
+        currentHeading = DriveTrain.currentHeading
         hasValidTarget = limeLight.hasValidTarget
         currentTx = limeLight.currentTx
 
@@ -57,8 +57,8 @@ object LLAutoTurn : Subsystem {
      * This uses Pedro Pathing's built-in heading correction
      */
     private fun applyHeadingLock() {
-        val robotX = DriveTrain.currentPose.x
-        val robotY = DriveTrain.currentPose.y
+        val robotX = DriveTrain.currentX
+        val robotY = DriveTrain.currentY
 
         // Calculate angle to goal: arctan(deltaY, deltaX)
         val deltaX = targetX - robotX
@@ -71,7 +71,7 @@ object LLAutoTurn : Subsystem {
 
         // Apply heading lock to drivetrain
         // Pedro Pathing will handle the actual turning using its controller
-        DriveTrain.setTargetHeading(targetHeading)
+       // DriveTrain.setTargetHeading(targetHeading)
     }
 
     /**
@@ -89,17 +89,19 @@ object LLAutoTurn : Subsystem {
 
         if (isAligned) {
             // Stop turning
-            DriveTrain.setDrivePowers(forward = 0.0, strafe = 0.0, turn = 0.0)
+          //  DriveTrain.setDrivePowers(forward = 0.0, strafe = 0.0, turn = 0.0)
         } else {
             // Turn in direction needed to reduce TX
             // TX negative = target is left, turn left (negative power)
             // TX positive = target is right, turn right (positive power)
             val turnDirection = if (currentTx < 0) -1.0 else 1.0
-            DriveTrain.setDrivePowers(
+            /*DriveTrain.setDrivePowers(
                 forward = 0.0,
                 strafe = 0.0,
                 turn = turnDirection * blindTurnPower
             )
+
+             */
         }
     }
 
@@ -130,7 +132,7 @@ object LLAutoTurn : Subsystem {
 
     val disableAutoTurn = InstantCommand {
         autoTurnEnabled = false
-        DriveTrain.clearTargetHeading()  // Release heading lock
+       // DriveTrain.clearTargetHeading()  // Release heading lock
     }
 
     val toggleAutoTurn = InstantCommand {
@@ -185,7 +187,7 @@ object LLAutoTurn : Subsystem {
                 appendLine("Angle Tolerance: $angleTolerance°")
             }
             appendLine()
-            appendLine("Robot Position: (${"%.1f".format(DriveTrain.currentPose.x)}, ${"%.1f".format(DriveTrain.currentPose.y)})")
+            appendLine("Robot Position: (${"%.1f".format(DriveTrain.currentX)}, ${"%.1f".format(DriveTrain.currentX)})")
         }
     }
 }

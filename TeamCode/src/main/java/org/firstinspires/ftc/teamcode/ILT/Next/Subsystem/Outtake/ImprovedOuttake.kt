@@ -1,19 +1,13 @@
-package org.firstinspires.ftc.teamcode.ILT.Next.Subsystem
+package org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake
 
-import dev.nextftc.core.subsystems.Subsystem
 import dev.nextftc.core.subsystems.SubsystemGroup
-import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.FlyWheel
-import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Hood
-import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Turret
-import kotlin.math.sqrt
-import org.firstinspires.ftc.teamcode.ILT.Helper.getIndex
-import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain
-import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain.currentX
-import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain.currentY
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Data.Alliance
-import kotlin.math.pow
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Shooter.FlyWheel
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Shooter.Hood
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Shooter.Turret
+import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain
 
-class ImprovedOuttake: SubsystemGroup(FlyWheel, Hood, Turret ){
+class ImprovedOuttake: SubsystemGroup(FlyWheel, Hood, Turret){
 
     @JvmField var fullManual = false
     @JvmField var autoShoot = false
