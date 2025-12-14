@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.next.tuning
 
-import com.bylazar.configurables.annotations.Configurable
 import com.bylazar.telemetry.JoinedTelemetry
 import com.bylazar.telemetry.PanelsTelemetry
 import com.pedropathing.geometry.Pose
@@ -15,68 +14,77 @@ import dev.nextftc.ftc.NextFTCOpMode
 import dev.nextftc.ftc.components.BulkReadComponent
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Intake
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Outtake
-
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants
 
-@Disabled
 @TeleOp
+class FlywheelTuning : NextFTCOpMode() {
 
-class FlywheelTuning(): NextFTCOpMode() {
-    var tele = JoinedTelemetry(PanelsTelemetry.ftcTelemetry, telemetry)
+    private val tele = JoinedTelemetry(PanelsTelemetry.ftcTelemetry, telemetry)
 
     init {
         addComponents(
             SubsystemComponent(Intake, Outtake),
-            (PedroComponent(Constants::createFollower)),
+            PedroComponent(Constants::createFollower),
             BulkReadComponent,
             BindingsComponent,
         )
-
-
     }
 
     override fun onInit() {
-        follower.setStartingPose(Pose(144-36.0, 6.5, Math.PI/2))
+        follower.setStartingPose(Pose(144 - 36.0, 6.5, Math.PI / 2))
+
+        // Make sure there is a nonzero target and gains while tuning
+        Outtake.targetOnVelo = 1500.0      // example units (ticks/s or rad/s – match your system)
+
     }
 
     override fun onStartButtonPressed() {
+        // Make sure these are Commands that flip flywheelsOn / targetOnVelo
         Gamepads.gamepad1.x whenBecomesTrue Outtake.flywheelOn
         Gamepads.gamepad1.y whenBecomesTrue Outtake.flywheelOff
         Gamepads.gamepad1.cross whenBecomesTrue Outtake.outtakeBalls
         Gamepads.gamepad1.dpadUp whenBecomesTrue Outtake.zeroMotor
-        Gamepads.gamepad2.rightBumper whenBecomesTrue  Outtake.spinGearRight whenBecomesFalse Outtake.stopGear
-        Gamepads.gamepad2.leftBumper whenBecomesTrue  Outtake.spinGearLeft whenBecomesFalse Outtake.stopGear
+
+        Gamepads.gamepad2.rightBumper whenBecomesTrue Outtake.spinGearRight whenBecomesFalse Outtake.stopGear
+        Gamepads.gamepad2.leftBumper  whenBecomesTrue Outtake.spinGearLeft  whenBecomesFalse Outtake.stopGear
     }
 
     override fun onUpdate() {
         tele.run {
             addData("current X", Outtake.currentX)
-            addData("current y", Outtake.currentY)
+            addData("current Y", Outtake.currentY)
             addData("current H", Outtake.currentHeading)
-            addData("f1P", Outtake.f1.power)
-            addData("f1V", Outtake.f1.velocity)
-            addData("f2V", Outtake.f2.velocity)
+
+            addData("f1 power", Outtake.f1.power)
+            addData("f1 vel", Outtake.f1.velocity)
+            addData("f2 vel", Outtake.f2.velocity)
+
             addData("kinetic state", Outtake.f1.state)
             addData("controller", Outtake.controller)
-            addData("controller value", Outtake.controller.calculate(Outtake.f1.state))
-            addData("targetV", Outtake.targetOnVelo)
+            addData("ctrl output", Outtake.controller.calculate(Outtake.f1.state))
+
+            addData("target vel", Outtake.targetOnVelo)
+
             addData("gear pos", Outtake.gP)
-            addData("iP", Intake.iP)
+            addData("intake pos", Intake.iP)
+
             addData("spin power", Outtake.spin.power)
-            addData("spin velo", Outtake.spin.velocity)
-            addData("spijn pos", Outtake.spin.currentPosition)
+            addData("spin vel", Outtake.spin.velocity)
+            addData("spin pos", Outtake.spin.currentPosition)
+
             addData("currentAngle", Outtake.turrentAngle)
             addData("prev angle", Outtake.prevAngle)
             addData("total angle", Outtake.totalAngle)
             addData("d heading", Outtake.dHeading)
-            addData("outtake turret", Outtake.turretHeading)
-            addData("target", Outtake.targetHeading)
+            addData("turret heading", Outtake.turretHeading)
+            addData("target heading", Outtake.targetHeading)
             addData("target x", Outtake.xcord)
             addData("target y", Outtake.ycord)
-            addData("goal", Outtake.sC.goal)
-            addData("Dist", Outtake.dist)
+
+            addData("flywheel goal", Outtake.sC.goal)
+            addData("dist", Outtake.dist)
             addData("flap pos", Outtake.hP)
-            addData("test", "true")
+
             update()
         }
     }
