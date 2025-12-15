@@ -20,8 +20,8 @@ object FlyWheel : Subsystem {
 
     //change these values when u tune the robot
     // increase the
-    @JvmField var flywheelPID = PIDCoefficients(0.0, 0.0, 0.0)
-    @JvmField var flywheelFF = BasicFeedforwardParameters(0.0, 0.0, 0.0)
+    @JvmField var flywheelPID = PIDCoefficients(0.001, 0.0, 0.0)
+    @JvmField var flywheelFF = BasicFeedforwardParameters(0.07, 1.7e-4, 0.0)
 
     //calling the control system that will control pid and feedforawd correcting.
     private var flywheelController = controlSystem {
@@ -37,6 +37,14 @@ object FlyWheel : Subsystem {
 
     class On(speed: Double) : RunToState(flywheelController, KineticState(velocity = speed))
     @JvmField var off = RunToVelocity(flywheelController, 0.0).requires(this).named("FlywheelOff").setInterruptible(true);
+
+
+    @JvmField var velocityTolerance = 100.0  // adjust after testing
+
+    fun isReadyToShoot(measuredVel: Double): Boolean {
+        if (!flywheelsOn) return false
+        return kotlin.math.abs(measuredVel - targetVelocity) <= velocityTolerance
+    }
 
     var lastPos = 0.0;
     var elapsedTime: ElapsedTime = ElapsedTime();
@@ -79,21 +87,5 @@ object FlyWheel : Subsystem {
     }
 
 
-    fun updatePid(velocity:Double) {
-        targetVelocity = velocity
-    }
 
-    val spin = InstantCommand {
-        flywheelsOn = true
-    }
-
-    val stop = InstantCommand {
-        flywheelsOn = false
-    }
-    // incase ball gets stuck
-    val backOut = InstantCommand {
-        stop.schedule()
-        f1.power = -0.5
-        f2.power = f1.power
-    }
 }

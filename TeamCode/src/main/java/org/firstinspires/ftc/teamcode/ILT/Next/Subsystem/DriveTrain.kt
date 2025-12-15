@@ -10,9 +10,8 @@ import dev.nextftc.hardware.driving.MecanumDriverControlled
 import dev.nextftc.hardware.impl.Direction
 import dev.nextftc.hardware.impl.IMUEx
 import dev.nextftc.hardware.impl.MotorEx
+import kotlin.math.PI
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Data.Alliance
-//import org.firstinspires.ftc.teamcode.pedroPathing.Far12
-// gotta create the auto but just calling it rn
 
 @Configurable
 object DriveTrain: Subsystem {
@@ -20,10 +19,7 @@ object DriveTrain: Subsystem {
     val fR = MotorEx("frontRight")
     val bL = MotorEx("backLeft")
     val bR = MotorEx("backRight")
-    // gotta change to pinpoint imu ask newyork guy
     val imu = IMUEx("imu", Direction.RIGHT, Direction.UP)
-    //val heading: Double
-        //get() = imu
 
     @JvmField var alliance = Alliance.RED
     @JvmField var sensitivity = 1.0
@@ -31,34 +27,62 @@ object DriveTrain: Subsystem {
     var currentY = 0.0
     var currentHeading = 0.0
 
+    // HEADING LOCK STATE
+    private var targetHeadingLock: Double? = null
+    private var headingLockActive = false
+
     override val defaultCommand: Command
         get() = MecanumDriverControlled(
-            fL,
-            fR,
-            bL,
-            bR,
-            -Gamepads.gamepad1.leftStickY.map {it * sensitivity},
-            Gamepads.gamepad1.leftStickX.map {it * sensitivity},
-            Gamepads.gamepad1.rightStickX.map {it * sensitivity}
+            fL, fR, bL, bR,
+            -Gamepads.gamepad1.leftStickY.map { it * sensitivity },
+            Gamepads.gamepad1.leftStickX.map { it * sensitivity },
+            Gamepads.gamepad1.rightStickX.map { it * sensitivity }
         )
 
     override fun periodic() {
         currentX = follower.pose.x
         currentY = follower.pose.y
         currentHeading = follower.heading
+
+        // HEADING LOCK - Direct motor control
+        if (headingLockActive && targetHeadingLock != null) {
+            val targetHeading = targetHeadingLock!!
+            val headingError = normalizeAngle(targetHeading - currentHeading)
+            val turnPower = (headingError * 0.4).coerceIn(-0.8, 0.8)  // Clamp power
+
+            // MECHANUM TURN: Opposite motors for rotation
+            fL.power = -turnPower
+            fR.power = turnPower
+            bL.power = -turnPower
+            bR.power = turnPower
+        }
+        // defaultCommand handles manual drive when no heading lock
     }
-//for auto that way we dont gotta switch and click to many buttons
-  //  override fun initialize() {
-      //  when (alliance) {
-            //Alliance.RED -> follower.setStartingPose(Far12.park)
-            //Alliance.BLUE -> follower.setStartingPose(Far12.park.mirror())
-      //  }
-  //  }
 
+    // LLAutoTurn INTERFACE
+    fun setTargetHeading(target: Double) {
+        targetHeadingLock = target
+        headingLockActive = true
+    }
 
+    fun clearTargetHeading() {
+        targetHeadingLock = null
+        headingLockActive = false
+        // Stop motors when releasing
+        fL.power = 0.0
+        fR.power = 0.0
+        bL.power = 0.0
+        bR.power = 0.0
+    }
 
-    //barycentric to see it we are in the zone for auto shoot
-  //this comes from someone else i aint learning it
+    private fun normalizeAngle(angle: Double): Double {
+        var normalized = angle
+        while (normalized > PI) normalized -= 2 * PI
+        while (normalized < -PI) normalized += 2 * PI
+        return normalized
+    }
+
+    // Your existing methods unchanged...
     fun PoseInTriangle(p: Pose, a: Pose, b: Pose, c: Pose): Boolean {
         val det = (b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y)
         if (kotlin.math.abs(det) < 1e-6) return false
@@ -69,21 +93,9 @@ object DriveTrain: Subsystem {
     }
 
     fun inShootZone(): Boolean {
-        val obstacle = listOf(
-            Pose(0.0, 115.0),
-            Pose(25.0, 144.0),
-            Pose(0.0, 141.0)
-        )
-        val upper = listOf(
-            Pose(0.0, 115.0),
-            Pose(25.0, 144.0),
-            Pose(72.0, 72.0)
-        )
-        val lower = listOf(
-            Pose(48.0, 0.0),
-            Pose(72.0, 24.0),
-            Pose(72.0, 0.0)
-        )
+        val obstacle = listOf(Pose(0.0, 115.0), Pose(25.0, 144.0), Pose(0.0, 141.0))
+        val upper = listOf(Pose(0.0, 115.0), Pose(25.0, 144.0), Pose(72.0, 72.0))
+        val lower = listOf(Pose(48.0, 0.0), Pose(72.0, 24.0), Pose(72.0, 0.0))
         val hw = 13.0 / 2.0
         val hl = 13.0 / 2.0
         val corners = listOf(

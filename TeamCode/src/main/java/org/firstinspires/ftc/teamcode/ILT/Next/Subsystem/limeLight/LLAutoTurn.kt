@@ -5,43 +5,41 @@ import dev.nextftc.core.subsystems.Subsystem
 import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain
 import kotlin.math.atan2
 import kotlin.math.abs
+import kotlin.math.hypot
 
 /**
  * Auto-turning subsystem using heading lock with arctan to align with target
- * Uses Pedro Pathing's heading lock for smooth, accurate alignment
+ * Works with direct motor control DriveTrain
  */
 object LLAutoTurn : Subsystem {
 
     // Target position (goal basket location on field)
-    var targetX = 0.0  // X coordinate of goal in field coordinates
-    var targetY = 0.0  // Y coordinate of goal in field coordinates
+    var targetX = 0.0
+    var targetY = 0.0
 
     // Auto-turn configuration
     var autoTurnEnabled = false
-    var useHeadingLock = true        // Use Pedro's heading lock (recommended)
-    var useBlindTurn = false         // Alternative: blind turn until aligned (simpler but less smooth)
+    var useHeadingLock = true
+    var useBlindTurn = false
 
-    // Heading lock parameters
-    var headingLockTolerance = 2.0   // Degrees - how close to consider "aligned"
-    var headingLockPower = 0.4       // Power multiplier for heading corrections
-
-    // Blind turn parameters (if not using heading lock)
-    var blindTurnPower = 0.15        // Constant power when blind turning
-    var angleTolerance = 1.0         // Degrees - when to stop blind turning
+    // Tuning parameters (tune these numbers directly)
+    private var headingLockTolerance = 2.0   // Degrees - how close = "aligned"
+    private var blindTurnPower = 0.15        // Constant power for blind mode
+    private var angleTolerance = 1.0         // Degrees for blind turn
 
     // Current state (updated every loop)
     var currentTx: Double = 0.0
-    var targetHeading: Double = 0.0  // Calculated heading to goal
+    var targetHeading: Double = 0.0
     var currentHeading: Double = 0.0
     var headingError: Double = 0.0
     var hasValidTarget: Boolean = false
     var isAligned: Boolean = false
 
     override fun periodic() {
-        // Get current robot position and limelight data
         currentHeading = DriveTrain.currentHeading
-        hasValidTarget = limeLight.hasValidTarget
-        currentTx = limeLight.currentTx
+        // TODO: Add Limelight integration later
+        // hasValidTarget = limeLight.hasValidTarget
+        // currentTx = limeLight.currentTx
 
         if (autoTurnEnabled) {
             if (useHeadingLock) {
@@ -53,60 +51,52 @@ object LLAutoTurn : Subsystem {
     }
 
     /**
-     * Method 1 (RECOMMENDED): Use arctan to calculate target heading and apply heading lock
-     * This uses Pedro Pathing's built-in heading correction
+     * Method 1 (RECOMMENDED): Heading Lock - uses field position + arctan
+     * Smoothly turns to face exact goal location
      */
     private fun applyHeadingLock() {
         val robotX = DriveTrain.currentX
         val robotY = DriveTrain.currentY
 
-        // Calculate angle to goal: arctan(deltaY, deltaX)
+        // Calculate angle to goal: arctan2(deltaY, deltaX)
         val deltaX = targetX - robotX
         val deltaY = targetY - robotY
         targetHeading = atan2(deltaY, deltaX)
 
-        // Calculate heading error
+        // Calculate heading error (normalized to shortest path)
         headingError = normalizeAngle(targetHeading - currentHeading)
         isAligned = abs(Math.toDegrees(headingError)) <= headingLockTolerance
 
-        // Apply heading lock to drivetrain
-        // Pedro Pathing will handle the actual turning using its controller
-       // DriveTrain.setTargetHeading(targetHeading)
+        // Tell DriveTrain to smoothly turn (uses direct motor control)
+        DriveTrain.setTargetHeading(targetHeading)
     }
 
     /**
-     * Method 2: Blind turn - keep turning right/left until aligned
-     * Simple but less smooth than heading lock
+     * Method 2: Blind Turn - turns based on Limelight TX offset
+     * Simple but less accurate than heading lock
      */
     private fun applyBlindTurn() {
         if (!hasValidTarget) {
             isAligned = false
+            DriveTrain.clearTargetHeading()
             return
         }
 
-        // Check if aligned
+        // Check if Limelight shows target centered
         isAligned = abs(currentTx) <= angleTolerance
 
         if (isAligned) {
-            // Stop turning
-          //  DriveTrain.setDrivePowers(forward = 0.0, strafe = 0.0, turn = 0.0)
+            DriveTrain.clearTargetHeading()
         } else {
-            // Turn in direction needed to reduce TX
-            // TX negative = target is left, turn left (negative power)
-            // TX positive = target is right, turn right (positive power)
+            // Turn toward target: TX<0=left (negative), TX>0=right (positive)
             val turnDirection = if (currentTx < 0) -1.0 else 1.0
-            /*DriveTrain.setDrivePowers(
-                forward = 0.0,
-                strafe = 0.0,
-                turn = turnDirection * blindTurnPower
-            )
-
-             */
+            val targetHeading = currentHeading + Math.toRadians(currentTx)
+            DriveTrain.setTargetHeading(targetHeading)
         }
     }
 
     /**
-     * Normalize angle to [-π, π]
+     * Normalize angle to shortest path [-180°, 180°]
      */
     private fun normalizeAngle(angle: Double): Double {
         var normalized = angle
@@ -116,23 +106,51 @@ object LLAutoTurn : Subsystem {
     }
 
     /**
-     * Set the target position (goal location on field)
-     * @param x X coordinate in field coordinates (inches)
-     * @param y Y coordinate in field coordinates (inches)
+     * Set specific goal position on field
      */
     fun setTargetPosition(x: Double, y: Double) {
         targetX = x
         targetY = y
     }
 
-    // Commands
+    /**
+     * Auto-select closest goal using distance (barycentric-style)
+     */
+    fun autoSelectClosestGoal() {
+        val goals = listOf(
+            72.0 to 36.0,    // Red near goal
+            120.0 to 72.0,   // Red far goal
+            -72.0 to 36.0,   // Blue near goal
+            -120.0 to 72.0   // Blue far goal
+        )
+
+        val robotX = DriveTrain.currentX
+        val robotY = DriveTrain.currentY
+
+        var closestDist = Double.MAX_VALUE
+        var bestGoalX = 0.0
+        var bestGoalY = 0.0
+
+        for ((gx, gy) in goals) {
+            val dist = hypot(gx - robotX, gy - robotY)
+            if (dist < closestDist) {
+                closestDist = dist
+                bestGoalX = gx
+                bestGoalY = gy
+            }
+        }
+
+        setTargetPosition(bestGoalX, bestGoalY)
+    }
+
+    // Commands for button binding
     val enableAutoTurn = InstantCommand {
         autoTurnEnabled = true
     }
 
     val disableAutoTurn = InstantCommand {
         autoTurnEnabled = false
-       // DriveTrain.clearTargetHeading()  // Release heading lock
+        DriveTrain.clearTargetHeading()
     }
 
     val toggleAutoTurn = InstantCommand {
@@ -153,41 +171,28 @@ object LLAutoTurn : Subsystem {
         useBlindTurn = true
     }
 
-    // Telemetry
+    /**
+     * Rich telemetry for driver station
+     */
     fun getTelemetryString(): String {
         return buildString {
             appendLine("=== AUTO TURN ===")
             appendLine("Enabled: $autoTurnEnabled")
-            appendLine("Mode: ${if (useHeadingLock) "Heading Lock" else if (useBlindTurn) "Blind Turn" else "Disabled"}")
+            appendLine("Mode: ${if (useHeadingLock) "HEADING LOCK" else if (useBlindTurn) "BLIND TURN" else "OFF"}")
 
             if (useHeadingLock) {
-                appendLine("Target Heading: ${"%.1f".format(Math.toDegrees(targetHeading))}°")
-                appendLine("Current Heading: ${"%.1f".format(Math.toDegrees(currentHeading))}°")
-                appendLine("Heading Error: ${"%.1f".format(Math.toDegrees(headingError))}°")
-                appendLine("Aligned: $isAligned")
+                appendLine("Target: ${"%.1f".format(Math.toDegrees(targetHeading))}°")
+                appendLine("Current: ${"%.1f".format(Math.toDegrees(currentHeading))}°")
+                appendLine("Error: ${"%.1f".format(Math.toDegrees(headingError))}°")
+                appendLine("✅ ALIGNED: $isAligned")
             } else if (useBlindTurn) {
-                appendLine("Valid Target: $hasValidTarget")
-                appendLine("TX Error: ${"%.2f".format(currentTx)}°")
-                appendLine("Aligned: $isAligned")
+                appendLine("Target: $hasValidTarget")
+                appendLine("TX: ${"%.2f".format(currentTx)}°")
+                appendLine("✅ ALIGNED: $isAligned")
             }
 
-            appendLine("Target Position: (${"%.1f".format(targetX)}, ${"%.1f".format(targetY)})")
-        }
-    }
-
-    // Debug info
-    fun getDebugInfo(): String {
-        return buildString {
-            appendLine("=== AUTO TURN CONFIG ===")
-            if (useHeadingLock) {
-                appendLine("Heading Lock Tolerance: $headingLockTolerance°")
-                appendLine("Heading Lock Power: $headingLockPower")
-            } else if (useBlindTurn) {
-                appendLine("Blind Turn Power: $blindTurnPower")
-                appendLine("Angle Tolerance: $angleTolerance°")
-            }
-            appendLine()
-            appendLine("Robot Position: (${"%.1f".format(DriveTrain.currentX)}, ${"%.1f".format(DriveTrain.currentX)})")
+            appendLine("Goal: (${"%.1f".format(targetX)}, ${"%.1f".format(targetY)})")
+            appendLine("Zone: ${DriveTrain.inShootZone()}")
         }
     }
 }
