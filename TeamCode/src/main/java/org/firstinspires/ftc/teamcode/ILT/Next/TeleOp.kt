@@ -21,7 +21,7 @@ import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Outtake
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants
 
 
-@TeleOp
+@TeleOp(name = "First Try")
 class TeleOP: NextFTCOpMode() {
     var tele = JoinedTelemetry(PanelsTelemetry.ftcTelemetry, telemetry)
 

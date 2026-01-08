@@ -80,8 +80,8 @@ object Outtake: Subsystem {
     @JvmField
     var targetBackVelo = 400.0
 
-    @JvmField var pid = PIDCoefficients(0.0, 0.0, 0.0)
-    @JvmField var ff = BasicFeedforwardParameters(0.0, 0.0, 0.0)
+    @JvmField var pid = PIDCoefficients(0.0129, 0.0, 0.0)
+    @JvmField var ff = BasicFeedforwardParameters(0.0001851, 0.0, 0.006)
     var controller = controlSystem {
         velPid(pid)
         basicFF(ff)
@@ -89,13 +89,13 @@ object Outtake: Subsystem {
 
     // Changing Vars
     @JvmField
-    var targetVelo = 0.0
+    var targetVelo = 1500.0
 
     @JvmField
     var gP = 0.0 // Gear Power
 
     @JvmField
-    var hP = 0.81 // Hood Position needa change this one i get the chance
+    var hP = 0.0 // Hood Position needa change this one i get the chance
 
     @JvmField
     var velocityTrue = true // Use the VPID

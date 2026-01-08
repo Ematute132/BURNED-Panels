@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Shooter
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled
 import dev.nextftc.control.KineticState
 import dev.nextftc.control.builder.controlSystem
 import dev.nextftc.control.feedback.PIDCoefficients
@@ -9,6 +10,7 @@ import dev.nextftc.hardware.impl.MotorEx
 import kotlin.math.PI
 // gotta absolute encoder
 // heading lock
+@Disabled
 object Turret: Subsystem {
     //convert this tele into Panels
     //private val tele = MultipleTelemetry(FtcDashboard.getInstance().telemetry, ActiveOpMode.telemetry)
