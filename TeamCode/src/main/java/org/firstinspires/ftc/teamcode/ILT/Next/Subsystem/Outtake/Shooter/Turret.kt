@@ -8,6 +8,8 @@ import dev.nextftc.core.subsystems.Subsystem
 import dev.nextftc.ftc.ActiveOpMode
 import dev.nextftc.hardware.impl.MotorEx
 import kotlin.math.PI
+import kotlin.math.atan2
+
 // gotta absolute encoder
 // heading lock
 @Disabled
