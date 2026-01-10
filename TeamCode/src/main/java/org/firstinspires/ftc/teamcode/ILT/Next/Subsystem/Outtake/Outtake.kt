@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake
 
 import com.bylazar.configurables.annotations.Configurable
-import com.qualcomm.robotcore.hardware.DcMotor
 import dev.nextftc.control.KineticState
 import dev.nextftc.control.builder.controlSystem
 import dev.nextftc.control.feedback.PIDCoefficients
@@ -14,7 +13,7 @@ import dev.nextftc.hardware.impl.MotorEx
 import dev.nextftc.hardware.impl.ServoEx
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Data.Alliance
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Intake
-import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.DriveTrain
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.time.Duration.Companion.seconds
@@ -22,15 +21,15 @@ import kotlin.time.Duration.Companion.seconds
 @Configurable
 object Outtake: Subsystem {
 
-    val f1 = MotorEx("flyRight")
-    val f2 = MotorEx("flyLeft").reversed()
+    val f1 = MotorEx("flyWheelR")
+    val f2 = MotorEx("flyWheelL").reversed()
     val hS = ServoEx("hood")
 
     var gearRatio = 3.47
 
     // Spin motor
 
-    val spin = MotorEx("spin")
+    //  val spin = MotorEx("spin")
 
     @JvmField
     //spin pid
@@ -53,10 +52,12 @@ object Outtake: Subsystem {
     fun goToYaw(y:Double) {
         sC.goal = KineticState(y, 0.0)
     }
+    /*
+        fun getYaw(): Double {
+            //return normalizeAngle(spin.currentPosition * rpt)
+        }
 
-    fun getYaw(): Double {
-        return normalizeAngle(spin.currentPosition * rpt)
-    }
+     */
 
 
     fun normalizeAngle(angleRadians: Double): Double {
@@ -80,8 +81,8 @@ object Outtake: Subsystem {
     @JvmField
     var targetBackVelo = 400.0
 
-    @JvmField var pid = PIDCoefficients(0.0129, 0.0, 0.0)
-    @JvmField var ff = BasicFeedforwardParameters(0.0001851, 0.0, 0.006)
+    @JvmField var pid = PIDCoefficients(0.0, 0.0, 0.0)
+    @JvmField var ff = BasicFeedforwardParameters(0.0, 0.0, 0.0)
     var controller = controlSystem {
         velPid(pid)
         basicFF(ff)
@@ -89,13 +90,13 @@ object Outtake: Subsystem {
 
     // Changing Vars
     @JvmField
-    var targetVelo = 1500.0
+    var targetVelo = 0.0
 
     @JvmField
     var gP = 0.0 // Gear Power
 
     @JvmField
-    var hP = 0.0 // Hood Position needa change this one i get the chance
+    var hP = 0.81 // Hood Position needa change this one i get the chance
 
     @JvmField
     var velocityTrue = true // Use the VPID
@@ -167,7 +168,7 @@ object Outtake: Subsystem {
 
         if (manualOn) {
             aimDistance()
-            spin.power = gP
+            //spin.power = gP
             hS.position = hP
         }
     }
@@ -204,8 +205,8 @@ object Outtake: Subsystem {
         hP -= 0.05
     }
     val zeroMotor = InstantCommand {
-        spin.motor.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER
-        spin.motor.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
+        //   spin.motor.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER
+        // spin.motor.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
     }
     val aimUp = InstantCommand {
         manualAim += 12
@@ -233,7 +234,7 @@ object Outtake: Subsystem {
         flywheelOff,
     )
 
-// new york guy helped me got to integrate it with LL
+    // new york guy helped me got to integrate it with LL
     fun aimDistance() {
         if(canSpin) {
             when(manualAim){

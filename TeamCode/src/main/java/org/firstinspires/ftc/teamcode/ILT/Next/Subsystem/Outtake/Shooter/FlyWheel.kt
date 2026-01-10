@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Shooter
 
-import com.qualcomm.robotcore.util.ElapsedTime
 import dev.nextftc.control.KineticState
 import dev.nextftc.control.builder.controlSystem
 import dev.nextftc.control.feedback.PIDCoefficients
@@ -8,84 +7,82 @@ import dev.nextftc.control.feedforward.BasicFeedforwardParameters
 import dev.nextftc.core.commands.utility.InstantCommand
 import dev.nextftc.core.subsystems.Subsystem
 import dev.nextftc.ftc.ActiveOpMode
-import dev.nextftc.hardware.controllable.MotorGroup
-import dev.nextftc.hardware.controllable.RunToState
-import dev.nextftc.hardware.controllable.RunToVelocity
 import dev.nextftc.hardware.impl.MotorEx
 
-object FlyWheel : Subsystem {
-    private val f1 = MotorEx("flyRight")
-    private val f2 = MotorEx("flyLeft")
-    private val fly = MotorGroup(f1, f2)
+// Flywheel subsystem controls two shooter wheels with combined PID + feedforward velocity control.
+object FlyWheel: Subsystem {
+    // Primary flywheel motor.
+    private val f1 = MotorEx("f1M")
+    // Secondary flywheel motor, reversed to match mechanical orientation.
+    private val f2 = MotorEx("f2M").reversed()
 
-    //change these values when u tune the robot
-    // increase the
-    @JvmField var flywheelPID = PIDCoefficients(0.001, 0.0, 0.0)
-    @JvmField var flywheelFF = BasicFeedforwardParameters(0.07, 1.7e-4, 0.0)
+    // Velocity PID coefficients (tune for your drivetrain and inertia).
+    @JvmField var flywheelPID = PIDCoefficients(0.0033, 0.0, 0.0)
+    // Basic feedforward parameters: kV (per-tick), kA, kS (static). Tune to reduce error and improve spin-up.
+    @JvmField var flywheelFF = BasicFeedforwardParameters(1.66667E-4, 0.0, 0.003)
 
-    //calling the control system that will control pid and feedforawd correcting.
+    // Controller combining velocity PID and feedforward for stable target tracking.
     private var flywheelController = controlSystem {
-        velPid(flywheelPID)
-        basicFF(flywheelFF)
+        velPid(flywheelPID)     // Use velocity PID loop
+        basicFF(flywheelFF)     // Add simple feedforward model
     }
-    // change target velo to match that of limelight
+
+    // Desired wheel linear velocity in ticks/sec (controller uses this as goal velocity).
     @JvmField var targetVelocity = 0.0
 
+    // On/off state for flywheels; when off, the controller targets zero velocity.
     @JvmField var flywheelsOn = false
-    // create motorRpm to convert motor velocity to rpm
+
+    // Convenience metric for driver feedback: estimated motor RPM.
     var motorRpm: Double = 0.0
 
-    class On(speed: Double) : RunToState(flywheelController, KineticState(velocity = speed))
-    @JvmField var off = RunToVelocity(flywheelController, 0.0).requires(this).named("FlywheelOff").setInterruptible(true);
-
-
-    @JvmField var velocityTolerance = 100.0  // adjust after testing
-
-    fun isReadyToShoot(measuredVel: Double): Boolean {
-        if (!flywheelsOn) return false
-        return kotlin.math.abs(measuredVel - targetVelocity) <= velocityTolerance
-    }
-
-    var lastPos = 0.0;
-    var elapsedTime: ElapsedTime = ElapsedTime();
-
+    // Periodic loop: compute RPM, run controller, mirror power to second motor, set goals, and report telemetry.
     override fun periodic() {
+        // Convert measured motor velocity (ticks/sec) to RPM; 60 sec/min divided by 28 ticks per motor rev.
         motorRpm = f1.velocity * 60.0/28.0
 
+        // Compute power from controller using current measured motor state.
         f1.power = flywheelController.calculate(f1.state)
+        // Mirror power to second motor to keep both wheels synchronized.
         f2.power = f1.power
+
+        // Update controller goal based on flywheelsOn flag.
         if (flywheelsOn) {
+            // Track the desired target velocity when enabled.
             flywheelController.goal = KineticState(0.0, targetVelocity)
-        }
-        else {
+        } else {
+            // Stop the wheels by commanding zero velocity.
             flywheelController.goal = KineticState(0.0, 0.0)
         }
-        val measuredVel = (fly.currentPosition - lastPos)/elapsedTime.time();
-        lastPos = fly.currentPosition;
-        elapsedTime.reset()
 
-
-        ActiveOpMode.telemetry.addData("targetVelo", targetVelocity)
-        ActiveOpMode.telemetry.addData("RPM target", targetVelocity*60.0/28.0)
-        ActiveOpMode.telemetry.addData("flywheel goal", flywheelController.goal)
-
-
-        ActiveOpMode.telemetry.addData("power R", flywheelController.calculate(f1.state))
-        ActiveOpMode.telemetry.addData("power L", flywheelController.calculate(f1.state))
-
-        ActiveOpMode.telemetry.addData("vel measured", measuredVel)
-        ActiveOpMode.telemetry.addData("vel est", flywheelController.lastMeasurement.velocity)
-        ActiveOpMode.telemetry.addData("vel ref", flywheelController.reference.velocity)
-        ActiveOpMode.telemetry.addData("vel goal", flywheelController.goal.velocity)
-
-        ActiveOpMode.telemetry.addData("pos measured", f1.currentPosition)
-        ActiveOpMode.telemetry.addData("pos measured", f2.currentPosition)
-        ActiveOpMode.telemetry.addData("pos est", -flywheelController.lastMeasurement.position)
-        ActiveOpMode.telemetry.addData("pos ref", flywheelController.reference.position)
-
-
+        // Driver-station telemetry: show targets and actuals for tuning and match awareness.
+        ActiveOpMode.telemetry.run {
+            addData("targetVelo", targetVelocity)                 // Controller target (ticks/sec)
+            addData("Current RPM", motorRpm)                      // Estimated actual RPM
+            addData("RPM target", targetVelocity*60.0/28.0)       // Target expressed in RPM
+            addData("flywheel goal", flywheelController.goal)     // Full KineticState goal
+        }
     }
 
+    // External API to set a new velocity target (ticks/sec). Does not auto-enable the wheels.
+    fun updatePid(velocity:Double) {
+        targetVelocity = velocity
+    }
 
+    // Command: enable flywheels (controller will pursue targetVelocity).
+    val spin = InstantCommand {
+        flywheelsOn = true
+    }
 
+    // Command: disable flywheels (controller will target zero).
+    val stop = InstantCommand {
+        flywheelsOn = false
+    }
+
+    // Command: briefly reverse to clear jams; schedules stop first, then sets negative power.
+    val backOut = InstantCommand {
+        stop.schedule()       // Ensure controller is not trying to maintain positive velocity.
+        f1.power = -0.5       // Manual reverse power on primary motor.
+        f2.power = f1.power   // Mirror reverse power on secondary motor.
+    }
 }

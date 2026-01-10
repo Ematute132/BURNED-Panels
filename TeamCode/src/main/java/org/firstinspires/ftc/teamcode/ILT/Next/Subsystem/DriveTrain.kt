@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.next.subsystems
+package org.firstinspires.ftc.teamcode.ILT.Next.Subsystem
 
 import com.bylazar.configurables.annotations.Configurable
 import com.pedropathing.geometry.Pose
@@ -12,13 +12,14 @@ import dev.nextftc.hardware.impl.IMUEx
 import dev.nextftc.hardware.impl.MotorEx
 import kotlin.math.PI
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Data.Alliance
+import kotlin.math.abs
 
 @Configurable
 object DriveTrain: Subsystem {
-    val fL = MotorEx("frontLeft")
-    val fR = MotorEx("frontRight")
-    val bL = MotorEx("backLeft")
-    val bR = MotorEx("backRight")
+    val fL = MotorEx("fl")
+    val fR = MotorEx("fr")
+    val bL = MotorEx("bl")
+    val bR = MotorEx("br")
     val imu = IMUEx("imu", Direction.RIGHT, Direction.UP)
 
     @JvmField var alliance = Alliance.RED
@@ -85,7 +86,7 @@ object DriveTrain: Subsystem {
     // Your existing methods unchanged...
     fun PoseInTriangle(p: Pose, a: Pose, b: Pose, c: Pose): Boolean {
         val det = (b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y)
-        if (kotlin.math.abs(det) < 1e-6) return false
+        if (abs(det) < 1e-6) return false
         val u = ((b.y - c.y) * (p.x - c.x) + (c.x - b.x) * (p.y - c.y)) / det
         val v = ((c.y - a.y) * (p.x - c.x) + (a.x - c.x) * (p.y - c.y)) / det
         val w = 1 - u - v

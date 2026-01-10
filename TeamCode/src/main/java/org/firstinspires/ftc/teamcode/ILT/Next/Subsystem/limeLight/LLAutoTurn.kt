@@ -2,7 +2,7 @@ package org.firstinspires.ftc.teamcode.next.kotlin.subsystems
 
 import dev.nextftc.core.commands.utility.InstantCommand
 import dev.nextftc.core.subsystems.Subsystem
-import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.DriveTrain
 import kotlin.math.atan2
 import kotlin.math.abs
 import kotlin.math.hypot
