@@ -1,9 +1,11 @@
 package org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Shooter
 
 import com.qualcomm.robotcore.eventloop.opmode.Disabled
+import com.qualcomm.robotcore.hardware.DcMotor
 import dev.nextftc.control.KineticState
 import dev.nextftc.control.builder.controlSystem
 import dev.nextftc.control.feedback.PIDCoefficients
+import dev.nextftc.core.commands.utility.InstantCommand
 import dev.nextftc.core.subsystems.Subsystem
 import dev.nextftc.extensions.pedro.PedroComponent.Companion.follower
 import dev.nextftc.ftc.ActiveOpMode
@@ -16,6 +18,9 @@ import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.DriveTrain.currentHeadi
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.DriveTrain.imu
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.ImprovedOuttake.goalY
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.ImprovedOuttake.goalX
+import org.firstinspires.ftc.teamcode.next.kotlin.subsystems.LLTurret
+
+
 
 // gotta absolute encoder
 // heading lock
@@ -24,7 +29,10 @@ object Turret: Subsystem {
 
 
     // Motor that drives the turret. MotorEx wraps the hardware DcMotor with utilities.
-    private val turret = MotorEx("turret")
+     val turret = MotorEx("turret")
+
+    var gP = 0.0
+
 
     // Gear ratio between motor and turret output (motor rotations to turret rotations).
     // This is used to convert encoder ticks into actual turret angle.
@@ -37,6 +45,7 @@ object Turret: Subsystem {
     // PID coefficients for position control of the turret (tuned empirically).
     @JvmField
     var turretPID = PIDCoefficients(0.011, 0.0, 0.2)
+
 
     // Control system that uses the position PID to compute motor power based on goal vs current state.
     var turretController = controlSystem {
@@ -54,7 +63,10 @@ object Turret: Subsystem {
     override fun periodic() {
         if(autoTurret) {
             // If automatic aiming is enabled, compute target angle and drive the turret.
-            autoAim()
+            //manually auto aim
+                autoAim()
+            //use the LL to auto aim
+            //autoAimLL()
         }
 
         // Report the current goal and measured yaw for debugging/driver info.
@@ -63,10 +75,31 @@ object Turret: Subsystem {
             addData("turret Pos", getYaw())
         }
     }
+    private fun autoAimLL(){
+        LLTurret.toggleAutoAimLL
+    }
+
+
+
+    val zeroMotor = InstantCommand {
+        turret.motor.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER
+    }
+
+    val spinGearLeft = InstantCommand { gP = 0.6 }
+    val spinGearRight = InstantCommand { gP = -0.6 }
+    val gearAlittleLeft = InstantCommand { gP = -0.2 }
+    val gearAlittleRight = InstantCommand { gP = 0.2 }
+    val stopGear = InstantCommand { gP = 0.0 }
+
+    val mu2 = atan2(goalY - currentY, goalX - currentX)
+
+    val deltaHeading2 = normalizeAngle(this.mu2 - currentHeading)
+
+   //Manual Aim turret
 
     // Computes the desired turret heading to point at the current goal (goalX, goalY),
     // relative to the robot's current field position (currentX, currentY) and heading.
-    private fun autoAim() {
+     fun autoAim() {
         // Angle from robot position to goal in field coordinates.
         val mu = atan2(goalY - currentY, goalX - currentX)
 
@@ -104,4 +137,6 @@ object Turret: Subsystem {
         }
         return angle
     }
+
+
 }

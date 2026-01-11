@@ -3,14 +3,17 @@ package org.firstinspires.ftc.teamcode.next
 import com.bylazar.telemetry.JoinedTelemetry
 import com.bylazar.telemetry.PanelsTelemetry
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
+import dev.nextftc.core.commands.utility.InstantCommand
 import dev.nextftc.core.components.BindingsComponent
 import dev.nextftc.core.components.SubsystemComponent
 import dev.nextftc.extensions.pedro.PedroComponent
+import dev.nextftc.ftc.Gamepads
 import dev.nextftc.ftc.NextFTCOpMode
 import dev.nextftc.ftc.components.BulkReadComponent
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.DriveTrain
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.ImprovedOuttake
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Shooter.Turret
-import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain
-import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Outtake
+
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants
 
@@ -22,14 +25,14 @@ class TurretAimTuning: NextFTCOpMode() {
         addComponents(
             PedroComponent(Constants::createFollower),
             // gotta update the tuning for the new intake
-            SubsystemComponent(Outtake, DriveTrain),
+            SubsystemComponent(ImprovedOuttake, DriveTrain),
             BulkReadComponent,
             BindingsComponent,
         )
     }
 
     override fun onInit() {
-
+        Gamepads.gamepad1.x whenBecomesTrue InstantCommand { Turret.zeroMotor }
     }
 
     override fun onUpdate() {

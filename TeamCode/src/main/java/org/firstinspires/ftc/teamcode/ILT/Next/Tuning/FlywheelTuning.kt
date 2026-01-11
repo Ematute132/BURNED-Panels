@@ -12,8 +12,13 @@ import dev.nextftc.extensions.pedro.PedroComponent.Companion.follower
 import dev.nextftc.ftc.Gamepads
 import dev.nextftc.ftc.NextFTCOpMode
 import dev.nextftc.ftc.components.BulkReadComponent
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.DriveTrain
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Intake
-import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Outtake
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.ImprovedOuttake
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Shooter.FlyWheel
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Shooter.Hood
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Shooter.Turret
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Shooter.Turret.turretController
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants
 
 @TeleOp
@@ -23,7 +28,7 @@ class FlywheelTuning : NextFTCOpMode() {
 
     init {
         addComponents(
-            SubsystemComponent(Intake, Outtake),
+            SubsystemComponent(Intake, ImprovedOuttake),
             PedroComponent(Constants::createFollower),
             BulkReadComponent,
             BindingsComponent,
@@ -34,56 +39,52 @@ class FlywheelTuning : NextFTCOpMode() {
         follower.setStartingPose(Pose(144 - 36.0, 6.5, Math.PI / 2))
 
         // Make sure there is a nonzero target and gains while tuning
-        Outtake.targetOnVelo = 1500.0      // example units (ticks/s or rad/s – match your system)
+        FlyWheel.targetVelocity = 1500.0      // example units (ticks/s or rad/s – match your system)
 
     }
 
     override fun onStartButtonPressed() {
         // Make sure these are Commands that flip flywheelsOn / targetOnVelo
-        Gamepads.gamepad1.x whenBecomesTrue Outtake.flywheelOn
-        Gamepads.gamepad1.y whenBecomesTrue Outtake.flywheelOff
-        Gamepads.gamepad1.cross whenBecomesTrue Outtake.outtakeBalls
-        Gamepads.gamepad1.dpadUp whenBecomesTrue Outtake.zeroMotor
+        Gamepads.gamepad1.x whenBecomesTrue FlyWheel.spin
+        Gamepads.gamepad1.y whenBecomesTrue FlyWheel.stop
+        Gamepads.gamepad1.cross whenBecomesTrue FlyWheel.backOut
+        Gamepads.gamepad1.dpadUp whenBecomesTrue Turret.zeroMotor
 
-        Gamepads.gamepad2.rightBumper whenBecomesTrue Outtake.spinGearRight whenBecomesFalse Outtake.stopGear
-        Gamepads.gamepad2.leftBumper  whenBecomesTrue Outtake.spinGearLeft  whenBecomesFalse Outtake.stopGear
+        Gamepads.gamepad2.rightBumper whenBecomesTrue Turret.spinGearRight whenBecomesFalse Turret.stopGear
+        Gamepads.gamepad2.leftBumper  whenBecomesTrue Turret.spinGearLeft  whenBecomesFalse Turret.stopGear
     }
 
     override fun onUpdate() {
         tele.run {
-            addData("current X", Outtake.currentX)
-            addData("current Y", Outtake.currentY)
-            addData("current H", Outtake.currentHeading)
+            addData("current X", DriveTrain.currentX)
+            addData("current Y", DriveTrain.currentY)
+            addData("current H", DriveTrain.currentHeading)
 
-            addData("f1 power", Outtake.f1.power)
-            addData("f1 vel", Outtake.f1.velocity)
-            addData("f2 vel", Outtake.f2.velocity)
+            addData("f1 power", FlyWheel.f1.power)
+            addData("f1 vel", FlyWheel.f1.velocity)
+            addData("f2 vel", FlyWheel.f2.velocity)
 
-            addData("kinetic state", Outtake.f1.state)
-            addData("controller", Outtake.controller)
-            addData("ctrl output", Outtake.controller.calculate(Outtake.f1.state))
+            addData("kinetic state", FlyWheel.f1.state)
+            addData("controller", FlyWheel.flywheelController)
+            addData("ctrl output", FlyWheel.flywheelController.calculate(FlyWheel.f1.state))
 
-            addData("target vel", Outtake.targetOnVelo)
+            addData("target vel", FlyWheel.targetVelocity)
 
-            addData("gear pos", Outtake.gP)
+            addData("gear pos", Turret.gP)
             addData("intake pos", Intake.iM.power)
 
-            addData("spin power", Outtake.spin.power)
-            addData("spin vel", Outtake.spin.velocity)
-            addData("spin pos", Outtake.spin.currentPosition)
-
-            addData("currentAngle", Outtake.turrentAngle)
-            addData("prev angle", Outtake.prevAngle)
-            addData("total angle", Outtake.totalAngle)
-            addData("d heading", Outtake.dHeading)
-            addData("turret heading", Outtake.turretHeading)
-            addData("target heading", Outtake.targetHeading)
-            addData("target x", Outtake.xcord)
-            addData("target y", Outtake.ycord)
-
-            addData("flywheel goal", Outtake.sC.goal)
-            addData("dist", Outtake.dist)
-            addData("flap pos", Outtake.hP)
+            addData("spin power", Turret.turret.power)
+            addData("spin vel", Turret.turret.velocity)
+            addData("spin pos", Turret.turret.currentPosition)
+            addData("target", Turret.deltaHeading2)
+            addData("target x", ImprovedOuttake.goalX)
+            addData("target y", ImprovedOuttake.goalY)
+            addData("goal",  turretController.goal)
+            addData("DistM", ImprovedOuttake.distM)
+            addData("DistLL", ImprovedOuttake.distLL)
+            addData("flap pos", Hood.hP)
+            addData("test", "true")
+            addData("distance Difference", ImprovedOuttake.distDiff)
 
             update()
         }

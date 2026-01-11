@@ -13,11 +13,13 @@ import dev.nextftc.ftc.Gamepads
 import dev.nextftc.ftc.NextFTCOpMode
 import dev.nextftc.ftc.components.BulkReadComponent
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Data.Alliance
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.DriveTrain
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Intake
-import org.firstinspires.ftc.teamcode.next.subsystems.DriveTrain
-
-import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Outtake
-
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.ImprovedOuttake
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Shooter.FlyWheel
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Shooter.Hood
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Outtake.Shooter.Turret
+import org.firstinspires.ftc.teamcode.ILT.Next.TestOp.HoodTestOp
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants
 
 
@@ -28,21 +30,21 @@ class TeleOP: NextFTCOpMode() {
     init {
         addComponents(
             PedroComponent(Constants::createFollower),
-            SubsystemComponent(Intake, Outtake, DriveTrain),
+            SubsystemComponent(Intake, ImprovedOuttake, DriveTrain),
             BulkReadComponent,
             BindingsComponent,
         )
     }
-/*
+
     override fun onInit() {
-        when (DriveTrain.alliance) {
+        //when (DriveTrain.alliance) {
             // got to add auto
             //Alliance.RED -> follower.setStartingPose(Far12.park)
             //Alliance.BLUE -> follower.setStartingPose(Far12.park.mirror())
-        }
+       // }
     }
 
- */
+
 
     override fun onStartButtonPressed() {
         // Intake Controls
@@ -50,35 +52,37 @@ class TeleOP: NextFTCOpMode() {
         Gamepads.gamepad1.leftTrigger.greaterThan(0.3) whenBecomesTrue Intake.reverseIntake whenBecomesFalse Intake.stopIntake
 
         // Gamepad 2
-        Gamepads.gamepad2.rightTrigger.greaterThan(0.3) whenBecomesTrue Outtake.aimUp
-        Gamepads.gamepad2.leftTrigger.greaterThan(0.3) whenBecomesTrue Outtake.aimDown
+        Gamepads.gamepad2.rightTrigger.greaterThan(0.3) whenBecomesTrue ImprovedOuttake.aimUp
+        Gamepads.gamepad2.leftTrigger.greaterThan(0.3) whenBecomesTrue ImprovedOuttake.aimDown
 
         // Flywheel Controls
-        Gamepads.gamepad2.a whenBecomesTrue SequentialGroup(InstantCommand{ Outtake.canSpin = true}, Outtake.flywheelOn)
-        Gamepads.gamepad2.b whenBecomesTrue SequentialGroup(InstantCommand { Outtake.canSpin = false }, Outtake.flywheelOff)
-        Gamepads.gamepad2.x whenBecomesTrue SequentialGroup(Outtake.flywheelBack)
+        Gamepads.gamepad2.a whenBecomesTrue SequentialGroup(InstantCommand{ ImprovedOuttake.canSpin = true},
+            FlyWheel.spin)
+        Gamepads.gamepad2.b whenBecomesTrue SequentialGroup(InstantCommand { ImprovedOuttake.canSpin = false },
+            FlyWheel.stop)
+        Gamepads.gamepad2.x whenBecomesTrue SequentialGroup(FlyWheel.backOut)
 
         // Gear Controls
-        Gamepads.gamepad2.rightBumper whenBecomesTrue  Outtake.spinGearRight whenBecomesFalse Outtake.stopGear
-        Gamepads.gamepad2.leftBumper whenBecomesTrue  Outtake.spinGearLeft whenBecomesFalse Outtake.stopGear
-        Gamepads.gamepad2.dpadRight whenBecomesTrue  Outtake.gearAlittleLeft whenBecomesFalse Outtake.stopGear
-        Gamepads.gamepad2.dpadLeft whenBecomesTrue  Outtake.gearAlittleRight whenBecomesFalse Outtake.stopGear
+        Gamepads.gamepad2.rightBumper whenBecomesTrue Turret.spinGearRight whenBecomesFalse Turret.stopGear
+        Gamepads.gamepad2.leftBumper whenBecomesTrue Turret.spinGearLeft whenBecomesFalse Turret.stopGear
+        Gamepads.gamepad2.dpadRight whenBecomesTrue Turret.gearAlittleLeft whenBecomesFalse Turret.stopGear
+        Gamepads.gamepad2.dpadLeft whenBecomesTrue Turret.gearAlittleRight whenBecomesFalse Turret.stopGear
 
         // Flap Controls
-        Gamepads.gamepad2.dpadUp whenBecomesTrue Outtake.FlapDown
-        Gamepads.gamepad2.dpadDown whenBecomesTrue Outtake.FlapUp
+        Gamepads.gamepad2.dpadUp whenBecomesTrue Hood.FlapDown
+        Gamepads.gamepad2.dpadDown whenBecomesTrue Hood.FlapUp
 
         // Aimbot Controls
     }
 
     override fun onUpdate() {
         tele.run {
-            addData("Hood Position ", Outtake.hP)
-            addData("Power ", Outtake.targetVelo)
+            addData("Hood Position ", Hood.hP)
+            addData("Power ", FlyWheel.targetVelocity)
             //replace this with LL instead of manualAim
-            addData("Distance in Tiles ", Outtake.manualAim/24.0)
-            addData("Manual Mode ", Outtake.manualOn)
-            addData("Can Shoot", Outtake.canSpin)
+            addData("Distance in Tiles ", ImprovedOuttake.manualAim/24.0)
+            addData("Manual Mode ", ImprovedOuttake.fullManual)
+            addData("Can Shoot", ImprovedOuttake.canSpin)
             update()
         }
     }

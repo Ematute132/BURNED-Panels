@@ -4,34 +4,47 @@ import dev.nextftc.control.KineticState
 import dev.nextftc.control.builder.controlSystem
 import dev.nextftc.control.feedback.PIDCoefficients
 import dev.nextftc.control.feedforward.BasicFeedforwardParameters
+import dev.nextftc.core.commands.delays.Delay
+import dev.nextftc.core.commands.groups.SequentialGroup
 import dev.nextftc.core.commands.utility.InstantCommand
 import dev.nextftc.core.subsystems.Subsystem
 import dev.nextftc.ftc.ActiveOpMode
 import dev.nextftc.hardware.impl.MotorEx
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Intake
+
+import kotlin.time.Duration.Companion.seconds
 
 // Flywheel subsystem controls two shooter wheels with combined PID + feedforward velocity control.
 object FlyWheel: Subsystem {
     // Primary flywheel motor.
-    private val f1 = MotorEx("f1M")
+    val f1 = MotorEx("f1M")
+
     // Secondary flywheel motor, reversed to match mechanical orientation.
-    private val f2 = MotorEx("f2M").reversed()
+     val f2 = MotorEx("f2M").reversed()
 
     // Velocity PID coefficients (tune for your drivetrain and inertia).
-    @JvmField var flywheelPID = PIDCoefficients(0.0033, 0.0, 0.0)
+    @JvmField
+    var flywheelPID = PIDCoefficients(0.0033, 0.0, 0.0)
+
     // Basic feedforward parameters: kV (per-tick), kA, kS (static). Tune to reduce error and improve spin-up.
-    @JvmField var flywheelFF = BasicFeedforwardParameters(1.66667E-4, 0.0, 0.003)
+    @JvmField
+    var flywheelFF = BasicFeedforwardParameters(1.66667E-4, 0.0, 0.003)
 
     // Controller combining velocity PID and feedforward for stable target tracking.
-    private var flywheelController = controlSystem {
+     var flywheelController = controlSystem {
         velPid(flywheelPID)     // Use velocity PID loop
         basicFF(flywheelFF)     // Add simple feedforward model
     }
 
     // Desired wheel linear velocity in ticks/sec (controller uses this as goal velocity).
-    @JvmField var targetVelocity = 0.0
+    @JvmField
+    var targetVelocity = 1500.0
+    // have to change target velo to the LL
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     // On/off state for flywheels; when off, the controller targets zero velocity.
-    @JvmField var flywheelsOn = false
+    @JvmField
+    var flywheelsOn = false
 
     // Convenience metric for driver feedback: estimated motor RPM.
     var motorRpm: Double = 0.0
@@ -39,7 +52,7 @@ object FlyWheel: Subsystem {
     // Periodic loop: compute RPM, run controller, mirror power to second motor, set goals, and report telemetry.
     override fun periodic() {
         // Convert measured motor velocity (ticks/sec) to RPM; 60 sec/min divided by 28 ticks per motor rev.
-        motorRpm = f1.velocity * 60.0/28.0
+        motorRpm = f1.velocity * 60.0 / 28.0
 
         // Compute power from controller using current measured motor state.
         f1.power = flywheelController.calculate(f1.state)
@@ -59,13 +72,13 @@ object FlyWheel: Subsystem {
         ActiveOpMode.telemetry.run {
             addData("targetVelo", targetVelocity)                 // Controller target (ticks/sec)
             addData("Current RPM", motorRpm)                      // Estimated actual RPM
-            addData("RPM target", targetVelocity*60.0/28.0)       // Target expressed in RPM
+            addData("RPM target", targetVelocity * 60.0 / 28.0)       // Target expressed in RPM
             addData("flywheel goal", flywheelController.goal)     // Full KineticState goal
         }
     }
 
     // External API to set a new velocity target (ticks/sec). Does not auto-enable the wheels.
-    fun updatePid(velocity:Double) {
+    fun updatePid(velocity: Double) {
         targetVelocity = velocity
     }
 
@@ -80,9 +93,26 @@ object FlyWheel: Subsystem {
     }
 
     // Command: briefly reverse to clear jams; schedules stop first, then sets negative power.
-    val backOut = InstantCommand {
+    val backOutSlow = InstantCommand {
         stop.schedule()       // Ensure controller is not trying to maintain positive velocity.
         f1.power = -0.5       // Manual reverse power on primary motor.
         f2.power = f1.power   // Mirror reverse power on secondary motor.
     }
+    val backOut = InstantCommand {
+        stop.schedule()       // Ensure controller is not trying to maintain positive velocity.
+        f1.power = -1.0       // Manual reverse power on primary motor.
+        f2.power = f1.power   // Mirror reverse power on secondary motor.
+    }
+
+
+    // SequentialCommand to automate shooting sequence
+    // might need to change the seconds
+    val Shoot = SequentialGroup(
+        spin,
+        Delay(0.1.seconds),
+        Intake.runIntake,
+        Delay(0.5.seconds),
+        stop,
+    )
+
 }

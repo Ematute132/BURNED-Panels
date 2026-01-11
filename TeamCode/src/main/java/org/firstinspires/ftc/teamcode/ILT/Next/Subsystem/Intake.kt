@@ -10,63 +10,52 @@ import kotlin.math.abs
 
 @Configurable
 object Intake : Subsystem {
+    // Here I declare two intake motors (left and right) and group them together.
+    // The MotorGroup makes it easy to control both at once.
     val iMR = MotorEx("iMR")
     val iML = MotorEx("iML")
     val iM = MotorGroup(iML, iMR)
 
     // Driver-requested intake power (what you WANT the intake to do)
+    // iP is the power level we want to apply — positive sucks balls in, negative ejects them.
     @JvmField
-    var requestedPower = 0.0
+    var iP = 0.0
 
-    // How close (in ticks/s) the flywheel velocity must be to target to allow feeding
-    @JvmField
-    var velocityTolerance = 100.0
 
     override fun periodic() {
-        // Compute whether flywheel is ready
-        val ready = flywheelReady()
-
-        // If flywheel is ready, actually run the requested power
-        // If not ready, hold intake still at 0
-        val actualPower = if (ready) requestedPower else 0.0
-        iM.power = actualPower
+        // Every loop, I just apply whatever power level the driver requested.
+        // It’s super simple — no PID or fancy control, just direct motor power.
+        iM.power = iP
     }
 
-    /**
-     * Returns true if the flywheel is on and its measured velocity
-     * is within velocityTolerance of the targetVelocity.
-     * Uses FlyWheel.motorRpm converted back to ticks/s.
-     */
-    fun flywheelReady(): Boolean {
-        if (!FlyWheel.flywheelsOn) return false
-        // motorRpm = ticks/s * 60 / 28  =>  ticks/s = motorRpm * 28 / 60
-        val measuredVel = FlyWheel.motorRpm * 28.0 / 60.0
-        return abs(measuredVel - FlyWheel.targetVelocity) <= velocityTolerance
-    }
-
-    // Commands now set requestedPower instead of iM.power directly
+    // These InstantCommands are designed to be bound to gamepad buttons.
+    // They’re one-press actions to quickly change intake behavior.
 
     val runIntake = InstantCommand {
-        requestedPower = 1.0
+        iP = 1.0 // Full power to suck balls into the robot.
     }
 
     val reverseIntake = InstantCommand {
-        requestedPower = -1.0
+        iP = -1.0 // Full power ejection (for clearing jams or dumping).
     }
 
     val reverseIntakeSlow = InstantCommand {
-        requestedPower = -0.5
+        iP = -0.5 // Half power ejection (gentler clearing).
     }
 
     val reverseIntakeVerySlow = InstantCommand {
-        requestedPower = -0.2
+        iP = -0.2 // Very gentle ejection (fine control or testing).
     }
 
     val stopIntake = InstantCommand {
-        requestedPower = 0.0
+        iP = 0.0 // Stop everything (safety or between actions).
     }
 }
 
 fun indexing() {
     // this is where the color sorting based off the color sensor will go
+    //students can do this and look at artifacts and ll for motif
+    // This is a placeholder for a student task: using a color sensor to sort balls.
+    // For example, they could detect ring colors or use Limelight motif data to decide which balls to keep.
+    // Right now it’s just a comment so the team knows what goes here.
 }
