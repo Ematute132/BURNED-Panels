@@ -17,6 +17,7 @@ object Hood: Subsystem {
     @JvmField var hP = 0.0
     val FlapDown = InstantCommand { hP += 0.05 }
     val FlapUp = InstantCommand { hP -= 0.05 }
+
     fun getHoodPosition(){
         // {{{{{{this is already done but the long way so someone can do it the short way by using math.}}}}}}
         // Intended: compute hood position from distance to target and launch velocity.

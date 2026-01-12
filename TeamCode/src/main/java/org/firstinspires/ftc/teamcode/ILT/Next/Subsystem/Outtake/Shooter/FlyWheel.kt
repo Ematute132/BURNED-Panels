@@ -28,7 +28,7 @@ object FlyWheel: Subsystem {
 
     // Basic feedforward parameters: kV (per-tick), kA, kS (static). Tune to reduce error and improve spin-up.
     @JvmField
-    var flywheelFF = BasicFeedforwardParameters(1.66667E-4, 0.0, 0.003)
+    var flywheelFF = BasicFeedforwardParameters(1/2400.0, 0.0, 0.03)
 
     // Controller combining velocity PID and feedforward for stable target tracking.
      var flywheelController = controlSystem {
@@ -38,9 +38,8 @@ object FlyWheel: Subsystem {
 
     // Desired wheel linear velocity in ticks/sec (controller uses this as goal velocity).
     @JvmField
-    var targetVelocity = 1500.0
-    // have to change target velo to the LL
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    var targetVelocity = 0.0
+
 
     // On/off state for flywheels; when off, the controller targets zero velocity.
     @JvmField

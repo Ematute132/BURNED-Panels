@@ -53,7 +53,7 @@ object ImprovedOuttake: SubsystemGroup(FlyWheel, Hood, Turret){
         // Every loop, I first decide whether we’re in full manual or assisted mode.
         if (fullManual) {
             Turret.autoTurret = false   // Disable auto aim when in full manual
-            // manualAim()                 // Placeholder for operator-controlled aiming
+            manualAim()                 // Placeholder for operator-controlled aiming
         } else {
             Turret.autoTurret = true    // Enable turret auto-aim to track goal
             auto()                     // Optional: run auto hood/flywheel tuning based on distance
@@ -87,7 +87,7 @@ object ImprovedOuttake: SubsystemGroup(FlyWheel, Hood, Turret){
     val distDiff = distM - distLL
 
     // values[0] and values[1] are the recommended hood and velocity settings for that distance.
-    val values: DoubleArray = Aimbot.getValues(distLL)
+    val values: DoubleArray = Aimbot.getValues(distM)
 
     fun auto() {
         // In auto, I let the Aimbot table pick a hood angle and flywheel velocity based on distance.
@@ -96,8 +96,6 @@ object ImprovedOuttake: SubsystemGroup(FlyWheel, Hood, Turret){
         Hood.updatePosition(values[0] + 0.06)  // Hood offset tweak
         FlyWheel.updatePid(values[1] + 100)    // Velocity bump for consistency
     }
-
-
     // Automated shooting sequence gate-kept by shoot zone check.
     fun autoShoot() {
         // Here I only allow autoShoot to run if our drivetrain says we’re inside a good shooting zone.
@@ -119,8 +117,6 @@ object ImprovedOuttake: SubsystemGroup(FlyWheel, Hood, Turret){
     val aimUp = InstantCommand { manualAim += 12 }
     val aimDown = InstantCommand { manualAim -= 12 }
     @JvmField var canSpin = true
-
-
     fun manualAim() {
         // TODO: Implement operator-driven aiming (e.g., stick inputs → Turret.goToYaw).
         // This is left for student work; integrate with NextFTC command bindings.
