@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Shooter
+package org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Shooter
 
 import com.bylazar.configurables.annotations.Configurable
 import com.qualcomm.robotcore.hardware.DcMotor
@@ -51,10 +51,7 @@ object Turret : Subsystem {
     // ==================== TUNING PARAMETERS ====================
     @JvmField var minPower: Double = 0.10  // Reduced - let controller handle most of it
     @JvmField var maxPower: Double = 1.0 // Increased ceiling for faster tracking
-    @JvmField var alignmentTolerance: Double = 2.5  // Increased - was too tight
-    @JvmField var visionGain: Double = 0.35
-    @JvmField var visionDeadbandDeg: Double = 0.5   // Ignore |tx| < this to reduce jitter
-    @JvmField var txFilterAlpha: Double = 0.25     // EMA: higher = less smoothing
+
 
     // Robot rotation compensation
     @JvmField var useRobotVelocityCompensation: Boolean = true
@@ -95,7 +92,7 @@ object Turret : Subsystem {
         updateVelocity()
         updateRobotVelocity()
 
-       turretYaw = getYaw()
+        turretYaw = getYaw()
 
         when (currentState) {
             State.IDLE -> turret.power = 0.0
@@ -142,7 +139,7 @@ object Turret : Subsystem {
 
 
 
-    private fun aimWithOdometryOnly() {
+    fun aimWithOdometryOnly() {
         if (!poseValid) {
             turret.power = 0.0
             return
