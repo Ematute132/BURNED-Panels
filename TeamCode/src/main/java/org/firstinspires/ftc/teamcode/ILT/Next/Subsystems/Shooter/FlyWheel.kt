@@ -23,7 +23,7 @@ object FlyWheel : Subsystem {
     @JvmField var pidCoefficients = PIDCoefficients(0.016, 0.0, 0.0)
 
     // 2. Control System
-    private val controller: ControlSystem = controlSystem {
+    val controller: ControlSystem = controlSystem {
         basicFF(ffCoefficients)
         velPid(pidCoefficients)
     }
