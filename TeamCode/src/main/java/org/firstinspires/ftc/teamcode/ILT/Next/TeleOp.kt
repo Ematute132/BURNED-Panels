@@ -5,6 +5,7 @@ import com.bylazar.telemetry.JoinedTelemetry
 import com.bylazar.telemetry.PanelsTelemetry
 import com.pedropathing.geometry.Pose
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
+import dev.nextftc.control.KineticState
 import dev.nextftc.core.commands.groups.ParallelGroup
 import dev.nextftc.core.commands.utility.InstantCommand
 import dev.nextftc.core.components.BindingsComponent
@@ -67,7 +68,10 @@ class MainTeleOp : NextFTCOpMode() {
         Gamepads.gamepad1.leftBumper whenBecomesTrue(Intake.reverse) whenBecomesFalse(Intake.stop)
 
         Gamepads.gamepad1.rightBumper whenBecomesTrue Gate.open whenBecomesFalse Gate.close
-        Gamepads.gamepad1.rightTrigger greaterThan(0.5) whenBecomesTrue {  }
+        Gamepads.gamepad1.rightTrigger greaterThan(0.5) whenBecomesTrue { FlyWheel.controller.goal =
+            KineticState(0.0, 1500.0)
+            //clsoe shooting is 1000.0
+        }
 
 
         Gamepads.gamepad1.circle whenBecomesTrue {reset}
@@ -75,8 +79,12 @@ class MainTeleOp : NextFTCOpMode() {
         Gamepads.gamepad1.dpadLeft whenBecomesTrue Hood.half
         Gamepads.gamepad1.dpadDown whenBecomesTrue Hood.close
 
-        Gamepads.gamepad1.square whenBecomesTrue { currentMode = AimModeTele.ODO }
-        Gamepads.gamepad1.triangle whenBecomesTrue {currentMode = AimModeTele.OFF}
+        Gamepads.gamepad1.square whenBecomesTrue {FlyWheel.controller.goal =
+            KineticState(0.0, 1250.0)}
+        Gamepads.gamepad1.triangle whenBecomesTrue{FlyWheel.controller.goal =
+            KineticState(0.0, 0.0)}
+
+
 
 
 
