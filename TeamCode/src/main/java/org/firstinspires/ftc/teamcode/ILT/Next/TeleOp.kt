@@ -89,7 +89,7 @@ class MainTeleOp : NextFTCOpMode() {
 
         when (currentMode) {
             AimModeTele.OFF -> Turret.stop()
-            AimModeTele.ODO -> Turret.aimWithOdometry()
+            AimModeTele.ODO -> Turret.aimWithOdometryOnly()
         }
 
 
