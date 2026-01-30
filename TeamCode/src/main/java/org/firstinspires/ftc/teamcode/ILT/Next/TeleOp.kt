@@ -69,7 +69,8 @@ class MainTeleOp : NextFTCOpMode() {
 
         Gamepads.gamepad1.rightBumper whenBecomesTrue Gate.open whenBecomesFalse Gate.close
         Gamepads.gamepad1.rightTrigger greaterThan(0.5) whenBecomesTrue { FlyWheel.controller.goal =
-            KineticState(0.0, 500.0)
+            KineticState(0.0, 1500.0)
+            //clsoe shooting is 1000.0
         }
 
 
@@ -79,7 +80,7 @@ class MainTeleOp : NextFTCOpMode() {
         Gamepads.gamepad1.dpadDown whenBecomesTrue Hood.close
 
         Gamepads.gamepad1.square whenBecomesTrue {FlyWheel.controller.goal =
-            KineticState(0.0, 1000.0)}
+            KineticState(0.0, 1250.0)}
         Gamepads.gamepad1.triangle whenBecomesTrue{FlyWheel.controller.goal =
             KineticState(0.0, 0.0)}
 

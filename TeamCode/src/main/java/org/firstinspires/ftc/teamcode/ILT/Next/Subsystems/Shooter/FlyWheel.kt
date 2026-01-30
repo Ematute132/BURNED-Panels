@@ -20,7 +20,7 @@ object FlyWheel : Subsystem {
     private val motor2 = MotorEx("Fly2").floatMode()
 
     @JvmField var ffCoefficients = BasicFeedforwardParameters(0.003, 0.08, 0.0) // Combined from your example
-    @JvmField var pidCoefficients = PIDCoefficients(0.016, 0.0, 0.0)
+    @JvmField var pidCoefficients = PIDCoefficients(0.008, 0.0, 0.01)
 
     // 2. Control System
     val controller: ControlSystem = controlSystem {
