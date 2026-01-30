@@ -7,6 +7,7 @@ import com.pedropathing.geometry.Pose
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import dev.nextftc.control.KineticState
 import dev.nextftc.core.commands.groups.ParallelGroup
+import dev.nextftc.core.commands.groups.SequentialGroup
 import dev.nextftc.core.commands.utility.InstantCommand
 import dev.nextftc.core.components.BindingsComponent
 import dev.nextftc.core.components.SubsystemComponent
@@ -68,9 +69,10 @@ class MainTeleOp : NextFTCOpMode() {
         Gamepads.gamepad1.leftBumper whenBecomesTrue(Intake.reverse) whenBecomesFalse(Intake.stop)
 
         Gamepads.gamepad1.rightBumper whenBecomesTrue Gate.open whenBecomesFalse Gate.close
-        Gamepads.gamepad1.rightTrigger greaterThan(0.5) whenBecomesTrue { FlyWheel.controller.goal =
-            KineticState(0.0, 1500.0)
-            //clsoe shooting is 1000.0
+        Gamepads.gamepad1.rightTrigger greaterThan(0.5) whenBecomesTrue {SequentialGroup( FlyWheel.maxShoot , Hood.open)
+            //clsoe shooting is 1000.0 hood all the way down
+            // mid shooting is 1250 hood inbetween up and half / gotta tune at school
+            // far shooting is 1500 hood up all the way/ may have to change velocity down.
         }
 
 
@@ -79,10 +81,8 @@ class MainTeleOp : NextFTCOpMode() {
         Gamepads.gamepad1.dpadLeft whenBecomesTrue Hood.half
         Gamepads.gamepad1.dpadDown whenBecomesTrue Hood.close
 
-        Gamepads.gamepad1.square whenBecomesTrue {FlyWheel.controller.goal =
-            KineticState(0.0, 1250.0)}
-        Gamepads.gamepad1.triangle whenBecomesTrue{FlyWheel.controller.goal =
-            KineticState(0.0, 0.0)}
+        Gamepads.gamepad1.square whenBecomesTrue {SequentialGroup( FlyWheel.midShoot , Hood.half)}
+        Gamepads.gamepad1.triangle whenBecomesTrue{SequentialGroup( FlyWheel.closeShoot , Hood.close)}
 
 
 

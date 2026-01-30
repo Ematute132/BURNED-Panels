@@ -1,11 +1,9 @@
 package org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Shooter
 
-import com.bylazar.configurables.annotations.Configurable
 import com.qualcomm.robotcore.hardware.DcMotor
+import com.qualcomm.robotcore.util.ElapsedTime
 import dev.nextftc.control.KineticState
 import dev.nextftc.control.builder.controlSystem
-import dev.nextftc.control.feedback.PIDCoefficients
-import dev.nextftc.control.feedforward.BasicFeedforwardParameters
 import dev.nextftc.core.subsystems.Subsystem
 import dev.nextftc.hardware.impl.MotorEx
 import org.firstinspires.ftc.teamcode.ILT.Next.Data.Alliance
@@ -14,216 +12,134 @@ import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Drive.currentX
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Drive.currentY
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Drive.poseValid
 
+import kotlin.Double
 import kotlin.math.*
 
-@Configurable
 object Turret : Subsystem {
+    enum class State { IDLE, MANUAL, ODOMETRY }
 
-    enum class State { IDLE,ODOMETRY }
-
-    var alliance = Alliance.RED
-    val turret = MotorEx("turret")
-    @JvmField var pid = PIDCoefficients(0.5, 0.0, 0.1)
-    @JvmField var feedForward = BasicFeedforwardParameters(0.1,0.0,0.0)
+    var motor = MotorEx("turret")
+    @JvmField var alliance = Alliance.RED
     var controller = controlSystem {
-        posPid(pid)
-        basicFF(feedForward)
+        posPid(0.5,0.0,0.1)
+       basicFF(0.25,0.0,0.0)
     }
-    @JvmField var RED_GOAL_X = 9.25
-    @JvmField var BLUE_GOAL_X = 134.75
+
+    var manualPower = 0.0
+    var currentState = State.IDLE
+    const val FIELD_SIZE = 144.0
+
+    // Goal positions (will be adjusted based on alliance)
+    const val GOAL_Y =  144.0// 136.0 inches
+    const val RED_GOAL_X = 144.0
+        // 138.0 inches
+    const val BLUE_GOAL_X = 0.0
     val goalX: Double
         get() = if (alliance == Alliance.RED) {
             RED_GOAL_X
         } else {
-            BLUE_GOAL_X
+           BLUE_GOAL_X
         }
 
+    val goalY: Double = GOAL_Y
 
-    @JvmField var goalY = 132.0
-
+    @JvmField var minPower: Double = 0.15
+    @JvmField var maxPower: Double = 0.75
+    @JvmField var alignmentTolerance: Double = 2.0
+    @JvmField var visionGain: Double = 0.4
+    @JvmField var kV: Double = 0.5               // Feedforward Gain
 
     const val GEAR_RATIO = 3.62068965517  // 105/29
     const val MOTOR_TICKS_PER_REV = 537.7
-    var turretYaw: Double = 0.0
-
-
-    @JvmField var currentState = State.IDLE
-    // ==================== TUNING PARAMETERS ====================
-    @JvmField var minPower: Double = 0.10  // Reduced - let controller handle most of it
-    @JvmField var maxPower: Double = 1.0 // Increased ceiling for faster tracking
-
-
-    // Robot rotation compensation
-    @JvmField var useRobotVelocityCompensation: Boolean = true
-    @JvmField var robotVelocityGain: Double = 0.9
-    private var filteredRobotAngularVelocity: Double = 0.0
-
-    // Velocity tracking
-    private var lastYaw: Double = 0.0
-    private var lastTime: Long = System.nanoTime()
-    private var currentVelocity: Double = 0.0
-
-    private var lastRobotHeading: Double = 0.0
-    private var lastHeadingTime: Long = System.nanoTime()
-
-    // Motion profiling
-    @JvmField var maxVelocity: Double = 3.5
-    @JvmField var maxAcceleration: Double = 6.0
-    @JvmField var useMotionProfile: Boolean = true
-    @JvmField var nearTargetErrorDeg: Double = 5.0   // Cap desired vel when error < this
-    @JvmField var nearTargetMaxVel: Double = 0.8    // rad/s when close
-
-    // Filtered Limelight tx (EMA) to reduce oscillation from vision noise
-    private var filteredTxDeg: Double = 0.0
 
     private const val RADIANS_PER_TICK = 2.0 * PI /
             (MOTOR_TICKS_PER_REV * GEAR_RATIO)
 
+    // State Tracking
+    private val velTimer = ElapsedTime()
+    private var lastRobotHeading = 0.0
+    private var robotAngularVelocity = 0.0
+
+    private var lastTargetSeenTime: Long = 0
+    const val MIN_ANGLE = -3 * PI / 4  // -2.356 radians
+    const val MAX_ANGLE = 3 * PI / 4   //  2.356 radians
+
+    var turretYaw: Double = 0.0
+
     override fun initialize() {
-        turret.motor.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER
-        turret.motor.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
-        lastYaw = getYaw()
-        lastTime = System.nanoTime()
-        lastRobotHeading = currentHeading
-        lastHeadingTime = System.nanoTime()
+        motor.motor.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER
+        motor.motor.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
+        velTimer.reset()
+        lastTargetSeenTime = System.currentTimeMillis()
     }
 
     override fun periodic() {
-        updateVelocity()
+        turretYaw = getYaw()
         updateRobotVelocity()
 
-        turretYaw = getYaw()
-
         when (currentState) {
-            State.IDLE -> turret.power = 0.0
+            State.IDLE -> motor.power = 0.0
+            State.MANUAL -> motor.power = manualPower.coerceIn(-maxPower, maxPower)
             State.ODOMETRY -> aimWithOdometryOnly()
+
         }
     }
 
-    /** Track robot rotation velocity; low-pass filtered to reduce noise. */
     private fun updateRobotVelocity() {
-        val currentHeading = currentHeading
-        val currentTime = System.nanoTime()
-        val dt = (currentTime - lastHeadingTime) / 1e9
-
-        if (dt > 0) {
-            var deltaHeading = currentHeading - lastRobotHeading
-            if (deltaHeading > PI) deltaHeading -= 2.0 * PI
-            if (deltaHeading < -PI) deltaHeading += 2.0 * PI
-            val raw = deltaHeading / dt
-            val alpha = 0.3
-            filteredRobotAngularVelocity = alpha * raw + (1.0 - alpha) * filteredRobotAngularVelocity
+        val dt = velTimer.seconds()
+        if (dt > 0.001) {
+            val currentHeading = currentHeading
+            val deltaHeading = normalizeAngle(currentHeading - lastRobotHeading)
+            robotAngularVelocity = deltaHeading / dt
+            lastRobotHeading = currentHeading
+            velTimer.reset()
         }
-
-        lastRobotHeading = currentHeading
-        lastHeadingTime = currentTime
     }
 
-    private fun updateVelocity() {
+
+
+    private fun applyControl(targetYaw: Double, targetVelocity: Double = 0.0) {
+
+        val clampedTarget = targetYaw.coerceIn(MIN_ANGLE, MAX_ANGLE)
         val currentYaw = getYaw()
-        val currentTime = System.nanoTime()
-        val dt = (currentTime - lastTime) / 1e9
 
-        if (dt > 0) {
-            var deltaYaw = currentYaw - lastYaw
 
-            if (deltaYaw > PI) deltaYaw -= 2.0 * PI
-            if (deltaYaw < -PI) deltaYaw += 2.0 * PI
+        controller.goal = KineticState(clampedTarget, targetVelocity)
 
-            currentVelocity = deltaYaw / dt
+
+        var power = controller.calculate(KineticState(currentYaw, 0.0))
+
+
+        val errorDeg = Math.toDegrees(abs(clampedTarget - currentYaw))
+        if (errorDeg > 0.5) {
+            power += (if (power >= 0) 1.0 else -1.0) * minPower
+        } else {
+
+            if (abs(targetVelocity) < 0.1) power = 0.0
         }
 
-        lastYaw = currentYaw
-        lastTime = currentTime
+        motor.power = power.coerceIn(-maxPower, maxPower)
+
+        // Update Alignment State
+
     }
-
-
-
-
 
 
     fun aimWithOdometryOnly() {
-        if (!poseValid) {
-            turret.power = 0.0
-            return
-        }
-
+        if (!poseValid) return
         val deltaX = goalX - currentX
         val deltaY = goalY - currentY
         val fieldAngle = atan2(deltaY, deltaX)
+        val robotHeading = if (abs(currentHeading) > 2.0 * PI)
+            Math.toRadians(currentHeading) else currentHeading
 
-        // REMOVE the IF check. Ensure currentHeading is ALWAYS Radians.
-        val targetYaw = normalizeAngle(fieldAngle - currentHeading)
-
-        applyControlWithVelocity(targetYaw)
-    }
-
-    private fun applyControlWithVelocity(targetYaw: Double) {
-        val currentYaw = getYaw()
-
-        // 1. CLAMP FIRST: Logic should treat the boundary as a wall
-        val clampedTarget = targetYaw.coerceIn(-3 * PI/4, 3 * PI/4)
-
-        // 2. ERROR: Find the shortest path TO THE CLAMPED TARGET
-        // Using normalizeAngle(target - current) is safer than a custom while loop
-        val errorRad = normalizeAngle(clampedTarget - currentYaw)
-        val errorDeg = Math.toDegrees(abs(errorRad))
-
-        // 3. VELOCITY: If using Robot Comp, it should be a subtraction from the feedforward
-        var profiledVel = if (useMotionProfile) calculateProfiledVelocity(currentYaw, clampedTarget) else 0.0
-
-        if (useRobotVelocityCompensation) {
-            // This 'predicts' where the robot is going
-            profiledVel -= filteredRobotAngularVelocity * robotVelocityGain
-        }
-
-        // 4. CONTROL: Feed the error-corrected goal to the controller
-        controller.goal = KineticState(clampedTarget, profiledVel)
-        var power = controller.calculate(KineticState(currentYaw, currentVelocity))
-
-        // 5. ANTI-STUTTER: Simple deadband
-        if (errorDeg < 0.5) power = 0.0
-
-        turret.power = power.coerceIn(-maxPower, maxPower)
-    }
-    /**
-     * Shortest angular error in [-PI, PI]. Use this for tolerance checks and control.
-     */
-    private fun shortestAngularError(current: Double, target: Double): Double {
-        var e = target - current
-        while (e > PI) e -= 2.0 * PI
-        while (e < -PI) e += 2.0 * PI
-        return e
+        applyControl(normalizeAngle(fieldAngle - robotHeading), -robotAngularVelocity * kV)
     }
 
 
 
-    private fun calculateProfiledVelocity(currentPos: Double, targetPos: Double): Double {
-        var error = targetPos - currentPos
+    fun getYaw(): Double = normalizeAngle(motor.currentPosition * RADIANS_PER_TICK)
 
-        if (error > PI) error -= 2.0 * PI
-        if (error < -PI) error += 2.0 * PI
-
-        val errorAbs = abs(error)
-        val direction = if (error > 0) 1.0 else -1.0
-
-        // Deceleration distance based on current velocity
-        val decelDistance = (currentVelocity * currentVelocity) / (2.0 * maxAcceleration)
-
-        val targetVelocity = if (errorAbs < decelDistance) {
-            // Deceleration phase
-            sqrt(2.0 * maxAcceleration * errorAbs) * direction
-        } else {
-            // Acceleration/constant velocity phase
-            maxVelocity * direction
-        }
-
-        return targetVelocity.coerceIn(-maxVelocity, maxVelocity)
-    }
-
-    // ==================== UTILITIES ====================
-
-    fun getYaw(): Double = normalizeAngle(turret.currentPosition * RADIANS_PER_TICK)
     fun normalizeAngle(radians: Double): Double {
         var angle = radians % (2.0 * PI)
         if (angle <= -PI) angle += 2.0 * PI
@@ -231,13 +147,6 @@ object Turret : Subsystem {
         return angle
     }
 
-    // ==================== COMMANDS ====================
-
-
     fun aimWithOdometry() { currentState = State.ODOMETRY }
-
-    fun stop() {
-        currentState = State.IDLE
-
-    }
+    fun stop() { currentState = State.IDLE; motor.power = 0.0 }
 }

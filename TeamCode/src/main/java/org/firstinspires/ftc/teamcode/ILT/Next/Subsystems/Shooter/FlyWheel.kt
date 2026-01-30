@@ -8,6 +8,8 @@ import dev.nextftc.control.builder.controlSystem
 import dev.nextftc.control.feedback.PIDCoefficients
 import dev.nextftc.control.feedforward.BasicFeedforwardParameters
 import dev.nextftc.core.commands.Command
+import dev.nextftc.core.commands.groups.ParallelGroup
+import dev.nextftc.core.commands.utility.InstantCommand
 import dev.nextftc.core.subsystems.Subsystem
 import dev.nextftc.hardware.controllable.RunToVelocity
 import dev.nextftc.hardware.impl.MotorEx
@@ -65,5 +67,20 @@ object FlyWheel : Subsystem {
         override fun update() {
             FlyWheel.setMotorPowers(shooterPower.get())
         }
+    }
+    val maxShoot = InstantCommand{
+        controller.goal =
+            KineticState(0.0, 1500.0)
+
+    }
+    val midShoot = InstantCommand{
+        controller.goal =
+            KineticState(0.0, 1250.0)
+
+    }
+    val closeShoot = InstantCommand{
+        controller.goal =
+            KineticState(0.0, 1000.0)
+
     }
 }
