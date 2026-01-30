@@ -40,6 +40,7 @@ class MainTeleOp : NextFTCOpMode() {
     private val panelsTelemetry = PanelsTelemetry.ftcTelemetry
     private val joinedTelemetry = JoinedTelemetry(telemetry, panelsTelemetry)
     private enum class AimModeTele { OFF, ODO }
+    private enum class FlyModeTele{IDLE,CLOSE,FAR,MID}
     private var currentMode = AimModeTele.OFF
     init {
         addComponents(
@@ -62,7 +63,7 @@ class MainTeleOp : NextFTCOpMode() {
             -Gamepads.gamepad1.leftStickY,
             -Gamepads.gamepad1.leftStickX,
             -Gamepads.gamepad1.rightStickX,
-            true  // false = field centric, true = robot centric
+            false  // false = field centric, true = robot centric
         ).schedule()
         currentMode = AimModeTele.OFF
         alliance = Alliance.RED
