@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Shooter
+package org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Shooter
 
 import com.bylazar.configurables.annotations.Configurable
 import com.qualcomm.robotcore.hardware.DcMotor
@@ -95,7 +95,7 @@ object Turret : Subsystem {
         updateVelocity()
         updateRobotVelocity()
 
-       turretYaw = getYaw()
+        turretYaw = getYaw()
 
         when (currentState) {
             State.IDLE -> turret.power = 0.0

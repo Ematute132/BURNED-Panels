@@ -17,7 +17,7 @@ import dev.nextftc.ftc.NextFTCOpMode
 import dev.nextftc.ftc.components.BulkReadComponent
 import dev.nextftc.hardware.driving.Drivetrain
 import org.firstinspires.ftc.teamcode.ILT.Next.Data.Alliance
-import org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Shooter.Turret
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Shooter.Turret
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Drive.currentHeading
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Drive.currentX
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Drive.currentY
@@ -27,9 +27,6 @@ import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Shooter.FlyWheel
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Shooter.Hood
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants
-
-import kotlin.math.PI
-import kotlin.math.abs
 
 @TeleOp(name = "Main TeleOp", group = "Competition")
 class MainTeleOp : NextFTCOpMode() {
@@ -70,7 +67,7 @@ class MainTeleOp : NextFTCOpMode() {
         Gamepads.gamepad1.leftBumper whenBecomesTrue(Intake.reverse) whenBecomesFalse(Intake.stop)
 
         Gamepads.gamepad1.rightBumper whenBecomesTrue Gate.open whenBecomesFalse Gate.close
-        Gamepads.gamepad1.rightTrigger greaterThan(0.5) whenBecomesTrue { FlyWheel.On(50.0) }
+        Gamepads.gamepad1.rightTrigger greaterThan(0.5) whenBecomesTrue {  }
 
 
         Gamepads.gamepad1.circle whenBecomesTrue {reset}
