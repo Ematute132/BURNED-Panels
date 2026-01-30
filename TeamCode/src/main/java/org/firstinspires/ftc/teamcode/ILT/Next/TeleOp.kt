@@ -36,7 +36,8 @@ class MainTeleOp : NextFTCOpMode() {
 
     private val panelsTelemetry = PanelsTelemetry.ftcTelemetry
     private val joinedTelemetry = JoinedTelemetry(telemetry, panelsTelemetry)
-
+    private enum class AimModeTele { OFF, ODO }
+    private var currentMode = AimModeTele.OFF
     init {
         addComponents(
             PedroComponent(Constants::createFollower),
@@ -77,8 +78,8 @@ class MainTeleOp : NextFTCOpMode() {
         Gamepads.gamepad1.dpadLeft whenBecomesTrue Hood.half
         Gamepads.gamepad1.dpadDown whenBecomesTrue Hood.close
 
-        Gamepads.gamepad1.square whenBecomesTrue { Turret.aimWithOdometry() }
-        Gamepads.gamepad1.triangle whenBecomesTrue {Turret.stop()}
+        Gamepads.gamepad1.square whenBecomesTrue { currentMode = AimModeTele.ODO }
+        Gamepads.gamepad1.triangle whenBecomesTrue {currentMode = AimModeTele.OFF}
 
 
 
@@ -88,6 +89,12 @@ class MainTeleOp : NextFTCOpMode() {
        currentX = follower.pose.x
         currentY = follower.pose.y
         currentHeading = follower.pose.heading
+
+        when (currentMode) {
+            AimModeTele.OFF -> Turret.stop()
+            AimModeTele.ODO -> Turret.aimWithOdometry()
+        }
+
 
 
     }
