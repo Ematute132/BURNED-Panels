@@ -26,10 +26,10 @@ object Gate : Subsystem {
     // ==================== COMMANDS ====================
 
     val open = InstantCommand {
-        position = 1.0
+        position = 0.0
     }
 
     val close = InstantCommand {
-        position = 0.0
+        position = 1.0
     }
 }
