@@ -10,7 +10,7 @@ import kotlin.math.PI
  */
 object Hood : Subsystem {
 
-    private var servo = ServoEx("gate", 0.01)
+    private var servo = ServoEx("hood", 0.01)
     private var position = 0.0
 
 
@@ -34,7 +34,7 @@ object Hood : Subsystem {
 
     // ==================== COMMANDS ====================
 
-    val open = InstantCommand {
+    val full = InstantCommand {
         position = 1.0
     }
 
@@ -43,5 +43,8 @@ object Hood : Subsystem {
     }
     val half = InstantCommand{
         position = 0.5
+    }
+    val open = InstantCommand{
+        position = 0.75
     }
 }
