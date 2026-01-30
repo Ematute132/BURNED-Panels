@@ -4,7 +4,9 @@ import com.pedropathing.geometry.Pose
 import dev.nextftc.core.commands.utility.InstantCommand
 import dev.nextftc.core.subsystems.Subsystem
 import dev.nextftc.extensions.pedro.PedroComponent.Companion.follower
+import dev.nextftc.extensions.pedro.PedroDriverControlled
 import dev.nextftc.ftc.ActiveOpMode
+import dev.nextftc.ftc.Gamepads
 import kotlin.math.sqrt
 
 object Drive : Subsystem{
@@ -18,17 +20,6 @@ object Drive : Subsystem{
 
 
         // ==================== INITIALIZATION ====================
-        override fun initialize() {
-            try {
-                // Create the driver controlled command
-                // This uses Gamepads which wraps the gamepad inputs
-                isInitialized = true
-                ActiveOpMode.telemetry.addData("DriveTrain", "Initialized OK")
-            } catch (e: Exception) {
-                ActiveOpMode.telemetry.addData("DriveTrain Error", e.message)
-                isInitialized = false
-            }
-        }
 
 
         // ==================== PERIODIC - MUST CALL driverControlled() HERE ====================
@@ -36,6 +27,9 @@ object Drive : Subsystem{
 
             // THIS IS THE KEY LINE - actually run the Pedro driving!
             // The () invokes the command's update logic
+
+
+
 
             // Update pose from Pedro follower
             try {

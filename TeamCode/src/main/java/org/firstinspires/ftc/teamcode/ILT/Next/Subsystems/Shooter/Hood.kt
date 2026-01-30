@@ -1,17 +1,16 @@
-package org.firstinspires.ftc.teamcode.ILT.Next.Subsystems
+package org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Shooter
 
 import dev.nextftc.core.commands.utility.InstantCommand
 import dev.nextftc.core.subsystems.Subsystem
 import dev.nextftc.hardware.impl.ServoEx
-
-
+import kotlin.math.PI
 
 /**
  * Gate subsystem for controlling ball flow to shooter.
  */
 object Hood : Subsystem {
 
-    private var servo = ServoEx("gate")
+    private var servo = ServoEx("gate", 0.01)
     private var position = 0.0
 
 
@@ -41,5 +40,8 @@ object Hood : Subsystem {
 
     val close = InstantCommand {
         position = 0.0
+    }
+    val half = InstantCommand{
+        position = 0.5
     }
 }

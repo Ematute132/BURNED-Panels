@@ -11,7 +11,7 @@ import dev.nextftc.hardware.impl.ServoEx
  */
 object Gate : Subsystem {
 
-    private var servo = ServoEx("gate")
+    private var servo = ServoEx("gate", 0.01)
     private var position = 0.0
 
 

@@ -39,27 +39,27 @@ object Intake : Subsystem{
     // ==================== COMMANDS ====================
 
     val run = InstantCommand {
-        power = 1.0
+       setPower(1.0)
         intakeState = IntakeState.INTAKING
     }
 
     val reverse = InstantCommand {
-        power = -1.0
+        setPower(-1.0)
         intakeState = IntakeState.EJECTING
     }
 
     val reverseSlow = InstantCommand {
-        power = -0.5
+        setPower(-0.5)
         intakeState = IntakeState.EJECTING
     }
 
     val feed = InstantCommand {
-        power = 1.0
+        setPower(1.0)
        intakeState = IntakeState.FEEDING
     }
 
     val stop = InstantCommand {
-        power = 0.0
+        setPower(0.0)
         intakeState = IntakeState.STOPPED
     }
 }
