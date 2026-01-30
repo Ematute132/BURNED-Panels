@@ -39,7 +39,7 @@ object Intake : Subsystem{
     // ==================== COMMANDS ====================
 
     val run = InstantCommand {
-       setPower(1.0)
+       setPower(0.8)
         intakeState = IntakeState.INTAKING
     }
 

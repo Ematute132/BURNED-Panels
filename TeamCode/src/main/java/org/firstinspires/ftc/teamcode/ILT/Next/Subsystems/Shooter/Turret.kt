@@ -21,7 +21,7 @@ object Turret : Subsystem {
     var motor = MotorEx("turret")
     @JvmField var alliance = Alliance.RED
     var controller = controlSystem {
-        posPid(0.5,0.0,0.1)
+        posPid(0.3,0.0,0.05)
        basicFF(0.25,0.0,0.0)
     }
 
@@ -47,7 +47,7 @@ object Turret : Subsystem {
     @JvmField var maxPower: Double = 0.75
     @JvmField var alignmentTolerance: Double = 2.0
     @JvmField var visionGain: Double = 0.4
-    @JvmField var kV: Double = 0.5               // Feedforward Gain
+    @JvmField var kV: Double = 0.25               // Feedforward Gain
 
     const val GEAR_RATIO = 3.62068965517  // 105/29
     const val MOTOR_TICKS_PER_REV = 537.7
