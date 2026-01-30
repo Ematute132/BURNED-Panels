@@ -23,10 +23,14 @@ import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Shooter.Turret
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Drive.currentHeading
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Drive.currentX
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Drive.currentY
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Drive.poseValid
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Gate
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Intake
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Shooter.FlyWheel
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Shooter.FlyWheel.controller
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Shooter.Hood
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Shooter.Turret.alliance
+import org.firstinspires.ftc.teamcode.ILT.Next.TestOp.TurretAimingTestOpMode.AimMode
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants
 
@@ -54,12 +58,14 @@ class MainTeleOp : NextFTCOpMode() {
     }
 
     override fun onStartButtonPressed() {
-       PedroDriverControlled(
+        PedroDriverControlled(
             -Gamepads.gamepad1.leftStickY,
             -Gamepads.gamepad1.leftStickX,
             -Gamepads.gamepad1.rightStickX,
             true  // false = field centric, true = robot centric
         ).schedule()
+        currentMode = AimModeTele.OFF
+        alliance = Alliance.RED
         bindControls()
     }
 
@@ -69,20 +75,22 @@ class MainTeleOp : NextFTCOpMode() {
         Gamepads.gamepad1.leftBumper whenBecomesTrue(Intake.reverse) whenBecomesFalse(Intake.stop)
 
         Gamepads.gamepad1.rightBumper whenBecomesTrue Gate.open whenBecomesFalse Gate.close
-        Gamepads.gamepad1.rightTrigger greaterThan(0.5) whenBecomesTrue {SequentialGroup( FlyWheel.maxShoot , Hood.open)
-            //clsoe shooting is 1000.0 hood all the way down
-            // mid shooting is 1250 hood inbetween up and half / gotta tune at school
-            // far shooting is 1500 hood up all the way/ may have to change velocity down.
-        }
+        Gamepads.gamepad1.rightTrigger greaterThan(0.5) whenBecomesTrue {FlyWheel.setVelocity(1500.0)}
+        //clsoe shooting is 1000.0 hood all the way down
+        // mid shooting is 1250 hood inbetween up and half / gotta tune at school
+        // far shooting is 1500 hood up all the way/ may have to change velocity down.
 
 
-        Gamepads.gamepad1.circle whenBecomesTrue {reset}
+
+
         Gamepads.gamepad1.dpadUp whenBecomesTrue Hood.open
         Gamepads.gamepad1.dpadLeft whenBecomesTrue Hood.half
         Gamepads.gamepad1.dpadDown whenBecomesTrue Hood.close
 
-        Gamepads.gamepad1.square whenBecomesTrue {SequentialGroup( FlyWheel.midShoot , Hood.half)}
-        Gamepads.gamepad1.triangle whenBecomesTrue{SequentialGroup( FlyWheel.closeShoot , Hood.close)}
+
+        Gamepads.gamepad1.square whenBecomesTrue {FlyWheel.setVelocity(1300.0)}
+        Gamepads.gamepad1.triangle whenBecomesTrue {FlyWheel.setVelocity(1000.0)}
+        Gamepads.gamepad1.cross whenBecomesTrue { FlyWheel.setVelocity(0.0) }
 
 
 
@@ -91,14 +99,17 @@ class MainTeleOp : NextFTCOpMode() {
     }
 
     override fun onUpdate() {
-       currentX = follower.pose.x
+        poseValid = true
+        currentMode = AimModeTele.ODO
+        currentX = follower.pose.x
         currentY = follower.pose.y
         currentHeading = follower.pose.heading
 
         when (currentMode) {
             AimModeTele.OFF -> Turret.stop()
-            AimModeTele.ODO -> Turret.aimWithOdometryOnly()
+            AimModeTele.ODO -> Turret.aimWithOdometry()
         }
+
 
 
 
@@ -110,6 +121,6 @@ class MainTeleOp : NextFTCOpMode() {
             FlyWheel.off,
             Intake.stop,
 
-        )
+            )
     }
 }
