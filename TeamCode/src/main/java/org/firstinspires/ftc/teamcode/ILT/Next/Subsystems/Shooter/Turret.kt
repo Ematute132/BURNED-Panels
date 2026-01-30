@@ -139,6 +139,9 @@ object Turret : Subsystem {
 
 
 
+
+
+
     fun aimWithOdometryOnly() {
         if (!poseValid) {
             turret.power = 0.0
@@ -148,14 +151,41 @@ object Turret : Subsystem {
         val deltaX = goalX - currentX
         val deltaY = goalY - currentY
         val fieldAngle = atan2(deltaY, deltaX)
-        val robotHeading = if (abs(currentHeading) > 2.0 * PI)
-            Math.toRadians(currentHeading) else currentHeading
 
-        applyControlWithVelocity(normalizeAngle(fieldAngle - robotHeading))
+        // REMOVE the IF check. Ensure currentHeading is ALWAYS Radians.
+        val targetYaw = normalizeAngle(fieldAngle - currentHeading)
+
+        applyControlWithVelocity(targetYaw)
     }
 
+    private fun applyControlWithVelocity(targetYaw: Double) {
+        val currentYaw = getYaw()
 
+        // 1. CLAMP FIRST: Logic should treat the boundary as a wall
+        val clampedTarget = targetYaw.coerceIn(-3 * PI/4, 3 * PI/4)
 
+        // 2. ERROR: Find the shortest path TO THE CLAMPED TARGET
+        // Using normalizeAngle(target - current) is safer than a custom while loop
+        val errorRad = normalizeAngle(clampedTarget - currentYaw)
+        val errorDeg = Math.toDegrees(abs(errorRad))
+
+        // 3. VELOCITY: If using Robot Comp, it should be a subtraction from the feedforward
+        var profiledVel = if (useMotionProfile) calculateProfiledVelocity(currentYaw, clampedTarget) else 0.0
+
+        if (useRobotVelocityCompensation) {
+            // This 'predicts' where the robot is going
+            profiledVel -= filteredRobotAngularVelocity * robotVelocityGain
+        }
+
+        // 4. CONTROL: Feed the error-corrected goal to the controller
+        controller.goal = KineticState(clampedTarget, profiledVel)
+        var power = controller.calculate(KineticState(currentYaw, currentVelocity))
+
+        // 5. ANTI-STUTTER: Simple deadband
+        if (errorDeg < 0.5) power = 0.0
+
+        turret.power = power.coerceIn(-maxPower, maxPower)
+    }
     /**
      * Shortest angular error in [-PI, PI]. Use this for tolerance checks and control.
      */
@@ -166,44 +196,7 @@ object Turret : Subsystem {
         return e
     }
 
-    private fun applyControlWithVelocity(targetYaw: Double) {
-        // 270° total range: ±135° from center (TurretConfig.MIN/MAX_ANGLE)
-        val clampedTarget = targetYaw.coerceIn( -3 * PI/4, 3 * PI/4)
-        val currentYaw = getYaw()
-        val errorRad = shortestAngularError(currentYaw, clampedTarget)
-        val errorDeg = Math.toDegrees(abs(errorRad))
 
-        var desiredVelocity = if (useMotionProfile) {
-            calculateProfiledVelocity(currentYaw, clampedTarget)
-        } else {
-            0.0
-        }
-
-        if (errorDeg < nearTargetErrorDeg) {
-            val sign = if (errorRad >= 0) 1.0 else -1.0
-            desiredVelocity = sign * minOf(abs(desiredVelocity), nearTargetMaxVel)
-        }
-
-        if (useRobotVelocityCompensation) {
-            desiredVelocity -= filteredRobotAngularVelocity * robotVelocityGain
-        }
-
-        controller.goal = KineticState(clampedTarget, desiredVelocity)
-        var power = controller.calculate(KineticState(currentYaw, currentVelocity))
-
-        // Friction kick only when FAR from target; otherwise it causes limit-cycle oscillation
-        val farFromTarget = errorDeg > 12.0
-        if (farFromTarget && abs(power) < minPower) {
-            power = (if (power >= 0) 1.0 else -1.0) * minPower
-        }
-
-        if (errorDeg < 1.0 && abs(power) < 0.03) {
-            power = 0.0
-        }
-
-        turret.power = power.coerceIn(-maxPower, maxPower)
-
-    }
 
     private fun calculateProfiledVelocity(currentPos: Double, targetPos: Double): Double {
         var error = targetPos - currentPos
@@ -231,11 +224,6 @@ object Turret : Subsystem {
     // ==================== UTILITIES ====================
 
     fun getYaw(): Double = normalizeAngle(turret.currentPosition * RADIANS_PER_TICK)
-    fun getYawDegrees(): Double = Math.toDegrees(getYaw())
-    fun getVelocity(): Double = currentVelocity
-    fun getVelocityDegPerSec(): Double = Math.toDegrees(currentVelocity)
-    fun getRobotAngularVelocity(): Double = filteredRobotAngularVelocity
-
     fun normalizeAngle(radians: Double): Double {
         var angle = radians % (2.0 * PI)
         if (angle <= -PI) angle += 2.0 * PI
