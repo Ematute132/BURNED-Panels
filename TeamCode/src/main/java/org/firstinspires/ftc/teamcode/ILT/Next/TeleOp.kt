@@ -76,7 +76,7 @@ class MainTeleOp : NextFTCOpMode() {
         Gamepads.gamepad1.leftBumper whenBecomesTrue(Intake.reverse) whenBecomesFalse(Intake.stop)
 
         Gamepads.gamepad1.rightBumper whenBecomesTrue Gate.open whenBecomesFalse Gate.close
-        Gamepads.gamepad1.rightTrigger greaterThan(0.5) whenBecomesTrue {FlyWheel.setVelocity(1500.0)}
+
         //clsoe shooting is 1000.0 hood all the way down
         // mid shooting is 1250 hood inbetween up and half / gotta tune at school
         // far shooting is 1500 hood up all the way/ may have to change velocity down.
@@ -89,9 +89,10 @@ class MainTeleOp : NextFTCOpMode() {
         Gamepads.gamepad1.dpadDown whenBecomesTrue Hood.close
 
 
-        Gamepads.gamepad1.square whenBecomesTrue {FlyWheel.setVelocity(1300.0)}
-        Gamepads.gamepad1.triangle whenBecomesTrue {FlyWheel.setVelocity(1000.0)}
-        Gamepads.gamepad1.cross whenBecomesTrue { FlyWheel.setVelocity(0.0) }
+        Gamepads.gamepad1.square whenBecomesTrue {FlyWheel.setVelocity(1000.0)}
+        Gamepads.gamepad1.triangle whenBecomesTrue {FlyWheel.setVelocity(1300.0)}
+        Gamepads.gamepad1.cross whenBecomesTrue { FlyWheel.setVelocity(-500.0) }
+        Gamepads.gamepad1.circle whenBecomesTrue { FlyWheel.setVelocity(1500.0) }
 
         Gamepads.gamepad2.triangle whenBecomesTrue { follower.pose = Pose(0.0,0.0,0.0) }
 
