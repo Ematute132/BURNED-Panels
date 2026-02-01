@@ -34,8 +34,8 @@ import org.firstinspires.ftc.teamcode.ILT.Next.TestOp.TurretAimingTestOpMode.Aim
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants
 
-@TeleOp(name = "Main TeleOp- RED", group = "Competition")
-class MainTeleOp : NextFTCOpMode() {
+@TeleOp(name = "Main TeleOp- BLUE", group = "Competition")
+class BlueTeleOp : NextFTCOpMode() {
 
     private val panelsTelemetry = PanelsTelemetry.ftcTelemetry
     private val joinedTelemetry = JoinedTelemetry(telemetry, panelsTelemetry)
@@ -54,7 +54,6 @@ class MainTeleOp : NextFTCOpMode() {
 
 
     override fun onInit() {
-        Alliance.BLUE
         follower.pose = Pose(72.0, 72.0, 0.0)
     }
 
@@ -66,7 +65,7 @@ class MainTeleOp : NextFTCOpMode() {
             false  // false = field centric, true = robot centric
         ).schedule()
         currentMode = AimModeTele.OFF
-        alliance = Alliance.RED
+        alliance = Alliance.BLUE
         bindControls()
     }
 
