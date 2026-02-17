@@ -1,21 +1,22 @@
-package org.firstinspires.ftc.teamcode.ILT.Next.Subsystem.Vision
+package org.firstinspires.ftc.teamcode.nextFtc.Subsystem.LL
 
 
 
 import com.bylazar.telemetry.PanelsTelemetry.telemetry
 import com.qualcomm.hardware.limelightvision.Limelight3A
 import dev.nextftc.core.subsystems.Subsystem
+import dev.nextftc.extensions.pedro.PedroComponent
 import dev.nextftc.ftc.ActiveOpMode.hardwareMap
 import dev.nextftc.hardware.impl.Direction
 import dev.nextftc.hardware.impl.IMUEx
-import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Drive.currentHeading
+
 
 
 /**
  * Limelight vision subsystem.
  * Handles target detection, distance calculation, and fiducial tracking.
  */
-object Limelight: Subsystem{
+object LLBase: Subsystem{
 
     lateinit var ll: Limelight3A
     private var isInitialized = false
@@ -27,6 +28,7 @@ object Limelight: Subsystem{
         private set
     var fiducialData: String = "No fiducials"
         private set
+
 
     override fun initialize() {
         ll = hardwareMap.get(Limelight3A::class.java, "ll")
@@ -90,7 +92,7 @@ object Limelight: Subsystem{
                 telemetry.addData("MT1 Location", "($x, $y)")
             }
         }
-        val robotYaw: Double = currentHeading
+        val robotYaw: Double = PedroComponent.follower.pose.heading
         ll.updateRobotOrientation(robotYaw)
         if (result != null && result.isValid()) {
             val mt2 = result.getBotpose_MT2()

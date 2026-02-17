@@ -17,6 +17,7 @@ import java.util.function.Supplier
 
 @Configurable
 object FlyWheel : Subsystem {
+
     // 1. Hardware Definition for 2 Motors
     private val motor1 = MotorEx("Fly1").floatMode()
     private val motor2 = MotorEx("Fly2").floatMode()
