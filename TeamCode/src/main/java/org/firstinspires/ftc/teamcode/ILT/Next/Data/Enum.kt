@@ -18,7 +18,7 @@ data object ROBOT {
 
     internal var currAlliance: Alliance = Alliance.BLUE
     internal var currStage: Stage = Stage.TELEOP
-    internal var currTeleOpStartPose: Pose = Pose(79.0,7.5,PI/2)
+    internal var currTeleOpStartPose: Pose = Pose(72.0,72.0,0.0)
 
     internal fun correctedPose(lVScalar: Double, angVScalar: Double): Pose {
         val v = follower.velocity.times(lVScalar)

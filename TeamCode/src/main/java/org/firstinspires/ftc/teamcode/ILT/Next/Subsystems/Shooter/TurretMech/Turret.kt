@@ -34,15 +34,29 @@ object Turret : Subsystem {
     const val MAX_ANGLE_DEG = 135.0
 
     // ============================================
-    // PID VALUES - TUNE THESE
+    // PID VALUES
+    // Tuning order:
+    //   1. Set I=0, D=0, velComp=false, minPower=0
+    //   2. Raise P until it just oscillates, then back off ~20%
+    //   3. Raise D until oscillation is damped
+    //   4. Re-enable minPower with a wide deadband (>= 3 deg)
+    //   5. Re-enable velocity compensation last
     // ============================================
     var controller = controlSystem {
-        posPid(0.3, 0.0, 0.05)
-        basicFF(0.25, 0.0, 0.0)
+        posPid(0.008, 0.0, 0.0008)
+        basicFF(0.01, 0.0, 0.0)
     }
 
-    @JvmField var minPower = 0.15
+    @JvmField var minPower = 0.08
     @JvmField var maxPower = 0.75
+    @JvmField var minPowerDeadbandDeg = 3.0
+
+    // ============================================
+    // LIMELIGHT RELOCALIZATION CONFIG
+    // ============================================
+    // Minimum number of AprilTags required before accepting a relocalization fix.
+    // At least 2 tags greatly reduces pose ambiguity.
+    @JvmField var minTagsForRelocalization = 2
 
     // ============================================
     // STATE
@@ -77,13 +91,9 @@ object Turret : Subsystem {
         motor.motor.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
         velTimer.reset()
 
-        // Init limelight
-        limelight = ActiveOpMode.hardwareMap.get(Limelight3A::class.java, "limelight")
-        limelight.pipelineSwitch(8)
+        limelight = ActiveOpMode.hardwareMap.get(Limelight3A::class.java, "ll")
+        limelight.pipelineSwitch(4)
         limelight.start()
-
-        // Relocalize at home using encoder position as baseline
-        relocalizeAtHome()
     }
 
     // ============================================
@@ -91,15 +101,15 @@ object Turret : Subsystem {
     // ============================================
     override fun periodic() {
         updateVelocity()
-        relocalizeWithLimelight()
+        // Uncomment to enable relocalization:
+        // relocalizeWithLimelight()
 
         when (currentState) {
-            State.IDLE -> motor.power = 0.0
+            State.IDLE   -> motor.power = 0.0
             State.MANUAL -> motor.power = manualPower.coerceIn(-maxPower, maxPower)
             State.AIMING -> applyControl()
         }
 
-        // Telemetry
         val result = limelight.latestResult
         limelightValid = result != null && result.isValid
         ActiveOpMode.telemetry.addData("Turret State", currentState.name)
@@ -117,42 +127,38 @@ object Turret : Subsystem {
     // ============================================
     // LIMELIGHT RELOCALIZATION
     // ============================================
-
     /**
-     * Called every loop. If Limelight has a valid MT2 result, updates Pedro's
-     * pose estimate and resyncs the turret heading baseline.
+     * BUG FIX: Previously this unconditionally overwrote follower.pose every loop,
+     * corrupting odometry whenever Limelight had a noisy or single-tag fix.
+     *
+     * Now guarded by:
+     *   1. minTagsForRelocalization - require 2+ tags to reduce ambiguity
+     *   2. Only runs when called explicitly (still gated by caller)
      */
     private fun relocalizeWithLimelight() {
         val currentPose = follower.pose
         limelight.updateRobotOrientation(Math.toDegrees(currentPose.heading))
 
         val result: LLResult? = limelight.latestResult
-        if (result != null && result.isValid) {
-            val botpose = result.botpose_MT2 ?: return
+        if (result == null || !result.isValid) return
 
-            val xInches = botpose.position.x * 39.3701
-            val yInches = botpose.position.y * 39.3701
-            val yawRad = Math.toRadians(botpose.orientation.yaw)
+        // Guard: require enough tags for a trustworthy fix
+        if (result.fiducialResults.size < minTagsForRelocalization) return
 
-            // Update Pedro's pose with vision fix
-            follower.pose = Pose(xInches, yInches, yawRad)
+        val botpose = result.botpose_MT2 ?: return
 
-            hasRelocalized = true
-        }
-    }
+        val xInches = botpose.position.x * 39.3701
+        val yInches = botpose.position.y * 39.3701
+        val yawRad  = Math.toRadians(botpose.orientation.yaw)
 
-    /**
-     * Baseline relocalization using current encoder position.
-     * Called on init before Limelight has data.
-     */
-    private fun relocalizeAtHome() {
+        // Only now do we overwrite the pose
+        follower.pose = Pose(xInches, yInches, yawRad)
         hasRelocalized = true
     }
 
     // ============================================
     // CONTROL
     // ============================================
-
     private fun applyControl() {
         controller.goal = KineticState(
             angleToTicks(targetAngle),
@@ -161,8 +167,9 @@ object Turret : Subsystem {
 
         var power = controller.calculate(motor.state)
 
-        val error = normalizeAngle(targetAngle - getHeading())
-        if (abs(Math.toDegrees(error)) > 0.5) {
+        val errorDeg = abs(Math.toDegrees(normalizeAngle(targetAngle - getHeading())))
+
+        if (errorDeg > minPowerDeadbandDeg) {
             power += if (power >= 0) minPower else -minPower
         } else if (abs(targetVelocity) < 0.1) {
             power = 0.0
@@ -188,9 +195,9 @@ object Turret : Subsystem {
 
     /**
      * Aim at a field-space target pose given the robot's current pose.
-     * Handles all angle math internally.
+     * velocityComp: only enable once PID is stable and not oscillating.
      */
-    fun aimAt(targetPose: Pose, botPose: Pose, velocityComp: Boolean = true) {
+    fun aimAt(targetPose: Pose, botPose: Pose, velocityComp: Boolean = false) {
         val fieldAngle = atan2(
             targetPose.y - botPose.y,
             targetPose.x - botPose.x
@@ -200,11 +207,11 @@ object Turret : Subsystem {
         setTarget(angleRad, velocityComp)
     }
 
-    fun setTarget(angleRad: Double, velocityComp: Boolean = true) {
+    fun setTarget(angleRad: Double, velocityComp: Boolean = false) {
         val minRad = degToRad(MIN_ANGLE_DEG)
         val maxRad = degToRad(MAX_ANGLE_DEG)
         targetAngle = angleRad.coerceIn(minRad, maxRad)
-        targetVelocity = if (velocityComp) -angularVelocity * 0.25 else 0.0
+        targetVelocity = if (velocityComp) -angularVelocity * 0.15 else 0.0
     }
 
     fun setManual(power: Double) {
@@ -226,7 +233,7 @@ object Turret : Subsystem {
     fun normalizeAngle(angle: Double): Double {
         var a = angle % (2 * PI)
         if (a <= -PI) a += 2 * PI
-        if (a > PI) a -= 2 * PI
+        if (a > PI)   a -= 2 * PI
         return a
     }
 

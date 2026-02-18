@@ -7,29 +7,36 @@ import dev.nextftc.core.commands.conditionals.IfElseCommand
 import dev.nextftc.core.commands.delays.Delay
 import dev.nextftc.core.commands.groups.SequentialGroup
 import dev.nextftc.core.commands.utility.InstantCommand
-import dev.nextftc.core.subsystems.Subsystem
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Gate
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Intake
 import org.firstinspires.ftc.teamcode.Util.ROBOT
 
+// FIX: Not a Subsystem — this is purely a command factory with no hardware of its own.
+// Registering it as a Subsystem was wasteful and misleading.
+object Shoot {
 
-object Shoot: Subsystem {
-    val shootTripleCommand: Command = IfElseCommand(
-        { ROBOT.getDistanceFromGoal() > 110.0},
-        shootCommand(1.2,0.55,0.55),
-        shootCommand(0.6, 1.0, 1.0)
+    // FIX: Was a val built at class-load time (before hardware is ready).
+    // Now a fun so it constructs a fresh IfElseCommand each time it's called,
+    // safely after initialize().
+    fun shootTripleCommand(): Command = IfElseCommand(
+        { ROBOT.getDistanceFromGoal() > 110.0 },
+        shootCommand(1.2),
+        shootCommand(0.6)
     )
 
-    fun shootCommand(waitTime: Double, tPow: Double, iPow: Double): Command =
+    // FIX: Removed unused tPow/iPow parameters.
+    // FIX: Gate.open() and Gate.close() are now called as functions (with ())
+    // so their returned InstantCommands are actually executed in the sequence.
+    fun shootCommand(waitTime: Double): Command =
         SequentialGroup(
             InstantCommand {
-                Intake.run
+                Intake.run().schedule()
                 Gate.open
             },
             Delay(waitTime),
             InstantCommand {
-                Intake.stop
-              Gate.close
+                Intake.stop().schedule()
+                Gate.close
             }
         )
 }

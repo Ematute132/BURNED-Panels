@@ -26,23 +26,24 @@ object Hood : Subsystem {
     var currentTargetPosition: Double = MID
         private set
 
-    // Robot position suppliers - set from TeleOp before use
+    // Robot position suppliers — set from TeleOp before use, or rely on periodic() auto-update
     var robotX: () -> Double = { 0.0 }
     var robotY: () -> Double = { 0.0 }
     var goalX: Double = 55.0
     var goalY: Double = 0.0
 
-    // FIX: fun instead of val so commands capture fresh tuned values each time
+    // FIX: auto-update flag so a manual override (setPosition / cmdFar etc.) can suppress
+    // the distance-based auto logic for one cycle. Reset to true each periodic unless held.
+    var autoUpdate: Boolean = true
+
+    // Commands capture fresh tuned values at creation time (fun, not val)
     fun cmdFar()   = SetPosition(servo, FAR)
     fun cmdMid()   = SetPosition(servo, MID)
     fun cmdClose() = SetPosition(servo, DOWN)
 
-    // FIX: auto-update flag so manual override is possible
-    var autoUpdate: Boolean = true
-
     fun setGoalPosition(gx: Double, gy: Double) {
         goalX = gx
-        goalY = gy //Todo gotta figure out a way to do this.
+        goalY = gy
     }
 
     fun setPositionProviders(x: () -> Double, y: () -> Double) {
@@ -50,7 +51,13 @@ object Hood : Subsystem {
         robotY = y
     }
 
+    /**
+     * Manually set a servo position and disable auto-update so the manual value is not
+     * immediately overwritten by the distance logic in the same periodic() call.
+     * Call autoUpdate = true to restore autonomous distance tracking.
+     */
     fun setPosition(newPosition: Double) {
+        autoUpdate = false          // FIX: prevent periodic() from overwriting this immediately
         currentTargetPosition = newPosition.coerceIn(0.0, 1.0)
         servo.position = currentTargetPosition
     }
@@ -61,7 +68,9 @@ object Hood : Subsystem {
             distanceInches < MID_THRESHOLD   -> MID
             else                             -> FAR
         }
-        setPosition(position)
+        // Use internal write so we don't toggle autoUpdate
+        currentTargetPosition = position
+        servo.position = position
         return position
     }
 
@@ -74,13 +83,14 @@ object Hood : Subsystem {
     }
 
     override fun periodic() {
-        // FIX: only auto-update if enabled, allowing manual override
+        // FIX: update position providers BEFORE computing distance so the same-cycle distance
+        // calculation uses the freshest odometry values (was updating AFTER in original code).
+        setPositionProviders({ Drive.currentX }, { Drive.currentY })
 
         if (autoUpdate) {
             val distance = getDistanceToGoal()
             setForDistance(distance)
         }
-        setPositionProviders({ Drive.currentX }, { Drive.currentY })
 
         PanelsTelemetry.telemetry.addData("Hood Auto", autoUpdate)
         PanelsTelemetry.telemetry.addData("Hood Distance", "%.1f".format(getDistanceToGoal()))
