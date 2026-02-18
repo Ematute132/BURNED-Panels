@@ -1,87 +1,83 @@
-package org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Shooter
+@file:Suppress("PackageName")
 
-import com.bylazar.configurables.annotations.Configurable
+package org.firstinspires.ftc.teamcode.Systems.ShooterSubsystems
+
 import com.bylazar.telemetry.PanelsTelemetry
-import dev.nextftc.control.ControlSystem
-import dev.nextftc.control.KineticState
-import dev.nextftc.control.builder.controlSystem
-import dev.nextftc.control.feedback.PIDCoefficients
-import dev.nextftc.control.feedforward.BasicFeedforwardParameters
-import dev.nextftc.core.commands.Command
-import dev.nextftc.core.commands.groups.ParallelGroup
-import dev.nextftc.core.commands.utility.InstantCommand
+import dev.nextftc.control2.feedback.PIDController
+import dev.nextftc.control2.feedforward.SimpleFFCoefficients
+import dev.nextftc.control2.feedforward.SimpleFeedforward
 import dev.nextftc.core.subsystems.Subsystem
-import dev.nextftc.hardware.controllable.RunToVelocity
+import dev.nextftc.hardware.controllable.MotorGroup
 import dev.nextftc.hardware.impl.MotorEx
-import java.util.function.Supplier
 
-@Configurable
-object FlyWheel : Subsystem {
+import com.qualcomm.robotcore.hardware.VoltageSensor
+import dev.nextftc.ftc.ActiveOpMode
+import dev.nextftc.ftc.ActiveOpMode.hardwareMap
+import kotlin.math.round
 
-    // 1. Hardware Definition for 2 Motors
-    private val motor1 = MotorEx("Fly1").floatMode()
-    private val motor2 = MotorEx("Fly2").floatMode()
 
-    @JvmField var ffCoefficients = BasicFeedforwardParameters(0.003, 0.08, 0.0) // Combined from your example
-    @JvmField var pidCoefficients = PIDCoefficients(0.009, 0.0, 0.01)
+object Flywheel: Subsystem {
+    val topFlywheelMotor: MotorEx = MotorEx("Fly1")
+    val bottomFlywheelMotor: MotorEx = MotorEx("Fly2")
+    val flywheelMotors: MotorGroup = MotorGroup(topFlywheelMotor, bottomFlywheelMotor)
+    private val battery: VoltageSensor by lazy { ActiveOpMode.hardwareMap.get(VoltageSensor::class.java, "Control Hub") }
 
-    // 2. Control System
-    val controller: ControlSystem = controlSystem {
-        basicFF(ffCoefficients)
-        velPid(pidCoefficients)
-    }
+    var flywheelPIDController: PIDController = PIDController(0.0075,0.0,0.0)
 
-    // 3. Command Definitions
-    fun setVelocity(speed: Double) {
-        controller.goal = KineticState(0.0,speed)
-    }
+    var flywheelFFCoefficients: SimpleFFCoefficients = SimpleFFCoefficients(0.064,0.00043,0.0)
+    private val flywheelFFController: SimpleFeedforward = SimpleFeedforward(flywheelFFCoefficients)
 
-    // Velocity presets based on your OpMode example
-    val off = RunToVelocity(controller, 0.0).requires(this).named("FlywheelOff")
-    fun runHigh() = setVelocity(2000.0)
-    fun runMid() = setVelocity(1000.0)
+    private const val V_NOMINAL = 12.0
+    internal const val IDLE_VELOCITY: Double = 1140.0
 
-    private fun setMotorPowers(power: Double) {
-        val clampedPower = power.coerceIn(-0.85, 0.85)
-        motor1.power = clampedPower
-        motor2.power = clampedPower
-    }
+    internal var flywheelTarget: Double = 0.0
+    private var velFilt = 0.0
+    private var voltFilt = 12.0
+    private const val ALPHA_VEL = 0.25
+    private const val ALPHA_VOLT = 0.08
 
-    override fun periodic() {
-        // Calculate power based on current motor state
-        // We use motor1 as the primary feedback source
-        val power = controller.calculate(motor1.state)
+    internal fun isAtTarget(): Boolean { return ((flywheelTarget - 20.0) < flywheelMotors.velocity) && ((flywheelTarget + 40.0) > flywheelMotors.velocity) }
 
-        setMotorPowers(power)
+    internal var usePID = true
 
-        // Telemetry for debugging sync and performance
-        PanelsTelemetry.telemetry.addData("Flywheel Power", power)
-        PanelsTelemetry.telemetry.addData("Target Vel", controller.goal.velocity)
-        PanelsTelemetry.telemetry.addData("Actual Vel", motor1.velocity)
-        PanelsTelemetry.telemetry.addData("Motor 2 Vel", motor2.velocity)
-    }
 
-    // Manual Override Command
-    class Manual(private val shooterPower: Supplier<Double>) : Command() {
-        override val isDone = false
-        init { requires(FlyWheel) }
-        override fun update() {
-            FlyWheel.setMotorPowers(shooterPower.get())
+    internal fun update(voltageCompEnabled: Boolean) {
+        val target = roundToNearest20(flywheelTarget)
+
+        val velRaw = flywheelMotors.velocity
+        val voltRaw = battery.voltage.coerceAtLeast(9.0)
+
+        velFilt += ALPHA_VEL * (velRaw - velFilt)
+        voltFilt += ALPHA_VOLT * (voltRaw - voltFilt)
+
+        val error = target - velFilt
+        val pid = flywheelPIDController.calculate(error = error)
+        val ff  = flywheelFFController.calculate(target)
+        var raw = (PIDController(0.0, 0.0, 0.0).calculate(error = error) + 0.0).coerceIn(-1.0, 1.0)
+        if (usePID) {
+            raw = (pid + ff).coerceIn(-1.0, 1.0)
         }
-    }
-    val maxShoot = InstantCommand{
-        controller.goal =
-            KineticState(0.0, 1500.0)
 
-    }
-    val midShoot = InstantCommand{
-        controller.goal =
-            KineticState(0.0, 1250.0)
+        val pow = if (voltageCompEnabled) {
+            (raw * (V_NOMINAL / voltFilt)).coerceIn(-1.0,1.0)
+        } else {
+            raw
+        }
 
+        flywheelMotors.power = pow
+        ActiveOpMode.telemetry.addData("flywheel power:", pow)
+        ActiveOpMode.telemetry.addData("goal velocity:", flywheelTarget)
+        ActiveOpMode.telemetry.addData("flywheel velocity", topFlywheelMotor.velocity)
     }
-    val closeShoot = InstantCommand{
-        controller.goal =
-            KineticState(0.0, 1000.0)
+    internal fun roundToNearest20(velocity: Double): Double {
+        // Divide by 20, round to the nearest integer, then multiply by 20
+        return round(velocity / 20.0) * 20.0
+    }
+}
 
-    }
+internal enum class FlywheelState {
+    AUTO_AIM,
+    MANUAL,
+    IDLE,
+    STOPPED;
 }
