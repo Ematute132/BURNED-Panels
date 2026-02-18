@@ -3,62 +3,54 @@ package org.firstinspires.ftc.teamcode.nextFtc.Subsystem.Shooter.TurretMech
 import dev.nextftc.core.commands.Command
 import dev.nextftc.core.units.Angle
 import dev.nextftc.core.units.rad
-import org.firstinspires.ftc.teamcode.nextFtc.Subsystem.Shooter.Turret
-import kotlin.math.PI
-import kotlin.math.abs
+
 import kotlin.math.atan2
 
+/**
+ * Odometry-based turret aim command.
+ * Uses robot position and heading to calculate angle to goal.
+ */
 class OdometryAim(
-    private val goalX: Double,              // Field X coordinate of goal
-    private val goalY: Double,
-    private val x: Double ,
-    private val y: Double,
-    private val h: Double,// Field Y coordinate of goal
-    private val ofsTurret: Angle = 0.0.rad  // Optional turret offset
+     val goalX: Double,        // Field X coordinate of goal
+     val goalY: Double,        // Field Y coordinate of goal
+     val poseX: () -> Double,  // Robot X supplier (live)
+     val poseY: () -> Double, // Robot Y supplier (live)
+     val poseH: () -> Double, // Robot heading supplier (RADIANS, normalized to [-PI, PI])
+     val ofsTurret: Angle = 0.0.rad  // Optional turret offset
 ) : Command() {
 
-    override val isDone = false  // Continuous tracking
+    // Continuous tracking - never completes
+    override val isDone = false
 
     override fun start() {
-        Turret.currentState = Turret.State.ODOMETRY
-        Turret.registerCommand(this)
+        Turret.currentState = Turret.State.AIMING
     }
 
     override fun update() {
+        // Get current robot pose
+        val x = poseX()
+        val y = poseY()
+        val h = poseH()
+
+        // Calculate angle from robot to goal
         val deltaX = goalX - x
         val deltaY = goalY - y
-        val fieldAngle = atan2(deltaY, deltaX)
+        val fieldAngle = atan2(deltaY, deltaX)  // Angle to goal in field space
 
-        // Handle heading that might be in degrees vs radians
-        val robotHeading = h.let { heading ->
-            if (abs(heading) > 2.0 * PI) Math.toRadians(heading) else heading
-        }
+        // Convert to robot-relative angle
+        // turretAngle = where goal is relative to robot heading
+        val turretAngle = fieldAngle - h + ofsTurret.inRad
 
-        val odoangle = (fieldAngle - robotHeading).rad + ofsTurret
-        val targetAngle = Turret.normalizeAngle(
-            odoangle.inRad
-        )
+        // Normalize to [-PI, PI] to minimize rotation
+        val targetAngle = Turret.normalizeAngle(turretAngle)
 
-        Turret.setTargetAngle(targetAngle.rad, compensateVelocity = true)
+        // Apply to turret with velocity compensation
+        Turret.setTarget(targetAngle, velocityComp = true)
     }
 
     override fun stop(interrupted: Boolean) {
-        if (!interrupted) Turret.currentState = Turret.State.IDLE
+        if (!interrupted) {
+            Turret.currentState = Turret.State.IDLE
+        }
     }
 }
-
-/**
- * Odometry aiming using Turret's internal goal suppliers.
- *
- * Wire up Turret.goalX and Turret.goalY before using this command.
- * Useful for dynamic goal selection (e.g., alliance-aware targeting).
- *
- * Usage:
- * ```kotlin
- * // Set goal based on alliance
- * Turret.goalX = { if (isRed) 72.0 else -72.0 }
- * Turret.goalY = { 0.0 }
- *
- * CommandManager.scheduleCommand(OdometryAimInternal())
- * ```
- */

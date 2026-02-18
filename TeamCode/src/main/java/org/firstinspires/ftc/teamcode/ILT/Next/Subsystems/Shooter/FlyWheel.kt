@@ -2,6 +2,7 @@
 
 package org.firstinspires.ftc.teamcode.Systems.ShooterSubsystems
 
+import com.bylazar.configurables.annotations.Configurable
 import com.bylazar.telemetry.PanelsTelemetry
 import dev.nextftc.control2.feedback.PIDController
 import dev.nextftc.control2.feedforward.SimpleFFCoefficients
@@ -15,14 +16,15 @@ import dev.nextftc.ftc.ActiveOpMode
 import dev.nextftc.ftc.ActiveOpMode.hardwareMap
 import kotlin.math.round
 
-
+@Configurable
 object Flywheel: Subsystem {
     val topFlywheelMotor: MotorEx = MotorEx("Fly1")
     val bottomFlywheelMotor: MotorEx = MotorEx("Fly2")
     val flywheelMotors: MotorGroup = MotorGroup(topFlywheelMotor, bottomFlywheelMotor)
     private val battery: VoltageSensor by lazy { ActiveOpMode.hardwareMap.get(VoltageSensor::class.java, "Control Hub") }
 
-    var flywheelPIDController: PIDController = PIDController(0.0075,0.0,0.0)
+
+   var flywheelPIDController: PIDController = PIDController(0.0075,0.0,0.0)
 
     var flywheelFFCoefficients: SimpleFFCoefficients = SimpleFFCoefficients(0.064,0.00043,0.0)
     private val flywheelFFController: SimpleFeedforward = SimpleFeedforward(flywheelFFCoefficients)

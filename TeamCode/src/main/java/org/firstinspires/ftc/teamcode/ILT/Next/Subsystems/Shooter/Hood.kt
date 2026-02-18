@@ -1,112 +1,72 @@
 package org.firstinspires.ftc.teamcode.nextFtc.Subsystem.Shooter
 
 import com.bylazar.telemetry.PanelsTelemetry
-import dev.nextftc.core.commands.Command
 import dev.nextftc.core.subsystems.Subsystem
 import dev.nextftc.hardware.impl.ServoEx
 import dev.nextftc.hardware.positionable.SetPosition
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Drive
 
-/**
- * Hood subsystem for adjusting shooter angle based on distance.
- * NOW auto-updates in periodic() based on robot position!
- *
- * Hardware: ServoEx connected to hood/angle adjustment mechanism
- *
- * Position values (TUNE THESE for your robot!):
- * - DOWN/CLOSE = for close range shots
- * - MID = for medium range shots
- * - FAR = for long range shots
- */
 object Hood : Subsystem {
 
     // ============================================
     // HOOD POSITIONS - TUNE THESE ON FIELD!
     // ============================================
-    // HOW TO TUNE:
-    // 1. Set all to 0.5 (midpoint)
-    // 2. Test at close range (~12 inches), adjust DOWN until shots go in
-    // 3. Test at far range (~48 inches), adjust FAR until shots go in
-    // 4. Test at mid range, adjust MID if needed
-    // 5. Fine-tune based on trajectory
-    // ============================================
-
-    @JvmField var DOWN = 0.0   // TODO: TUNE - Close range (12-18 inches)
-    @JvmField var CLOSE = 0.0  // Alias for DOWN
-    @JvmField var MID = 0.5     // TODO: TUNE - Medium range (24-36 inches)
-    @JvmField var FAR = 1.0     // TODO: TUNE - Long range (48+ inches)
+    @JvmField var DOWN = 0.0
+    @JvmField var MID  = 0.5
+    @JvmField var FAR  = 1.0
 
     // ============================================
-    // DISTANCE THRESHOLDS - ADJUST FOR YOUR FIELD!
+    // DISTANCE THRESHOLDS - TUNE THESE ON FIELD!
     // ============================================
+    @JvmField var CLOSE_THRESHOLD = 20.0
+    @JvmField var MID_THRESHOLD   = 40.0
 
-    private val CLOSE_THRESHOLD = 20.0  // TODO: TUNE
-    private val MID_THRESHOLD = 40.0    // TODO: TUNE
-
-    // Use ServoEx with scale parameter - check your robot's direction!
     private val servo = ServoEx("hood", 0.01)
 
-    // Current target position for telemetry
     var currentTargetPosition: Double = MID
         private set
 
-    // Robot position suppliers - set these from TeleOp
+    // Robot position suppliers - set from TeleOp before use
     var robotX: () -> Double = { 0.0 }
     var robotY: () -> Double = { 0.0 }
-    var goalX: Double = 55.0  // Default goal position
+    var goalX: Double = 55.0
     var goalY: Double = 0.0
 
-    // Commands for common positions
-    val full = SetPosition(servo, FAR)
-    val close = SetPosition(servo, CLOSE)
-    val half = SetPosition(servo, MID)
-    val open = SetPosition(servo, DOWN)
+    // FIX: fun instead of val so commands capture fresh tuned values each time
+    fun cmdFar()   = SetPosition(servo, FAR)
+    fun cmdMid()   = SetPosition(servo, MID)
+    fun cmdClose() = SetPosition(servo, DOWN)
 
-    /**
-     * Set goal position for distance calculation
-     */
+    // FIX: auto-update flag so manual override is possible
+    var autoUpdate: Boolean = true
+
     fun setGoalPosition(gx: Double, gy: Double) {
         goalX = gx
-        goalY = gy
+        goalY = gy //Todo gotta figure out a way to do this.
     }
 
-    /**
-     * Set position providers from TeleOp
-     */
     fun setPositionProviders(x: () -> Double, y: () -> Double) {
         robotX = x
         robotY = y
     }
 
-    /**
-     * Set hood position directly
-     */
     fun setPosition(newPosition: Double) {
         currentTargetPosition = newPosition.coerceIn(0.0, 1.0)
         servo.position = currentTargetPosition
     }
 
-    /**
-     * Set hood position based on distance to target
-     * Returns the position used
-     */
     fun setForDistance(distanceInches: Double): Double {
         val position = when {
             distanceInches < CLOSE_THRESHOLD -> DOWN
-            distanceInches < MID_THRESHOLD -> MID
-            else -> FAR
+            distanceInches < MID_THRESHOLD   -> MID
+            else                             -> FAR
         }
         setPosition(position)
         return position
     }
 
-    /**
-     * Get current hood position
-     */
     val currentPosition: Double get() = servo.position
 
-    /**
-     * Get distance to goal
-     */
     private fun getDistanceToGoal(): Double {
         val dx = goalX - robotX()
         val dy = goalY - robotY()
@@ -114,12 +74,16 @@ object Hood : Subsystem {
     }
 
     override fun periodic() {
-        // Auto-update hood position based on distance to goal!
-        val distance = getDistanceToGoal()
-        setForDistance(distance)
+        // FIX: only auto-update if enabled, allowing manual override
 
-        // Debug telemetry
-        PanelsTelemetry.telemetry.addData("Hood Distance", "%.1f".format(distance))
+        if (autoUpdate) {
+            val distance = getDistanceToGoal()
+            setForDistance(distance)
+        }
+        setPositionProviders({ Drive.currentX }, { Drive.currentY })
+
+        PanelsTelemetry.telemetry.addData("Hood Auto", autoUpdate)
+        PanelsTelemetry.telemetry.addData("Hood Distance", "%.1f".format(getDistanceToGoal()))
         PanelsTelemetry.telemetry.addData("Hood Position", "%.3f".format(currentPosition))
         PanelsTelemetry.telemetry.addData("Hood Target", "%.3f".format(currentTargetPosition))
     }

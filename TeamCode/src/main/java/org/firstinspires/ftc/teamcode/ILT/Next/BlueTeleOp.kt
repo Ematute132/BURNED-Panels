@@ -30,7 +30,11 @@ import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Shooter.FlyWheel
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Shooter.FlyWheel.controller
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Shooter.Hood
 import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Shooter.Turret.alliance
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Shooter.Turret.goalX
+import org.firstinspires.ftc.teamcode.ILT.Next.Subsystems.Shooter.Turret.goalY
 import org.firstinspires.ftc.teamcode.ILT.Next.TestOp.TurretAimingTestOpMode.AimMode
+import org.firstinspires.ftc.teamcode.Systems.ShooterSubsystems.Flywheel
+import org.firstinspires.ftc.teamcode.nextFtc.Subsystem.Shooter.Hood
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants
 
@@ -46,7 +50,7 @@ class BlueTeleOp : NextFTCOpMode() {
         addComponents(
             PedroComponent(Constants::createFollower),
             SubsystemComponent(
-                FlyWheel, Drivetrain, Hood, Gate, Intake, Turret
+                Flywheel, Drivetrain, Hood, Gate, Intake, Turret
             ),
             BulkReadComponent, BindingsComponent
         )
@@ -82,10 +86,6 @@ class BlueTeleOp : NextFTCOpMode() {
 
 
 
-
-        Gamepads.gamepad1.dpadUp whenBecomesTrue Hood.open
-        Gamepads.gamepad1.dpadLeft whenBecomesTrue Hood.half
-        Gamepads.gamepad1.dpadDown whenBecomesTrue Hood.close
 
 
         Gamepads.gamepad1.square whenBecomesTrue {FlyWheel.setVelocity(1000.0)}
