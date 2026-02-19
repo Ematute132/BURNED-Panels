@@ -1,8 +1,6 @@
 package org.firstinspires.ftc.teamcode.nextFtc.Subsystem.Shooter.TurretMech
 
 import com.pedropathing.geometry.Pose
-import com.qualcomm.hardware.limelightvision.Limelight3A
-import com.qualcomm.hardware.limelightvision.LLResult
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.util.ElapsedTime
 import dev.nextftc.control.KineticState
@@ -12,189 +10,198 @@ import dev.nextftc.control.feedforward.BasicFeedforward
 import dev.nextftc.core.commands.Command
 import dev.nextftc.core.commands.CommandManager
 import dev.nextftc.core.subsystems.Subsystem
-import dev.nextftc.extensions.pedro.PedroComponent.Companion.follower
-import dev.nextftc.hardware.impl.MotorEx
 import dev.nextftc.ftc.ActiveOpMode
+import dev.nextftc.hardware.impl.MotorEx
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
 
 object Turret : Subsystem {
     enum class State {
-        IDLE, MANUAL, AIMING
+        IDLE,   // Motor stopped
+        MANUAL, // Driver control
+        AIMING  // Auto-tracking mode
     }
+
+    var currentState = State.IDLE
+        private set
 
     var motor = MotorEx("turret")
 
-    // ============================================
-    // PHYSICAL CONSTANTS
-    // ============================================
-    const val MOTOR_TICKS = 537.7
-    private val TICKS_PER_RADIAN = MOTOR_TICKS * (105.0 / 29.0) / (2 * PI)
+    private const val MOTOR_TICKS = 537.7
+    private const val GEAR_RATIO = 105.0 / 29.0
+    private val TICKS_PER_RADIAN = MOTOR_TICKS * GEAR_RATIO / (2 * PI)
+
     const val MIN_ANGLE_DEG = -135.0
     const val MAX_ANGLE_DEG = 135.0
 
-    // ============================================
-    // PID + FF VALUES
-    // Tuning order:
-    // 1. Start with just P (I=0, D=0)
-    // 2. Raise P until it oscillates, then back off ~20%
-    // 3. Add small I (0.01-0.05) for accuracy
-    // 4. Add D (0.1-0.3) for damping
-    // 5. Add FF (kV only, ~0.1) for consistent response
-    // ============================================
-    @JvmField var turretPID = PIDCoefficients(2.5, 0.01, 0.1)
-    
-    // Simple kV feedforward - helps with consistent speed
+    // ================================================================
+    // TUNING PARAMETERS
+    // ================================================================
+    /**
+     * PID Coefficients
+     *
+     * TUNING GUIDE:
+     * 1. Start with P only (I=0, D=0)
+     * 2. Increase P until oscillation, then reduce by 20%
+     * 3. Add small I (0.01-0.05) to eliminate steady-state error
+     * 4. Add D (0.1-0.3) to reduce overshoot and dampen oscillation
+     *
+     * Current values (increased for faster response):
+     * - kP = 1.5: Proportional gain (responsiveness)
+     * - kI = 0.01: Integral gain (accuracy)
+     * - kD = 0.15: Derivative gain (damping)
+     */
+    @JvmField var turretPID = PIDCoefficients(1.5, 0.01, 0.15)
+
+    /**
+     * Feedforward Coefficients
+     *
+     * Helps maintain consistent speed during motion:
+     * - kV = 0.1: Velocity feedforward (compensates for friction at speed)
+     * - kA = 0.0: Acceleration feedforward (not needed for this mechanism)
+     * - kS = 0.0: Static friction (handled by PID)
+     */
     @JvmField var turretFF = BasicFeedforward(0.1, 0.0, 0.0)
 
-    // Control system with FF + trapezoidal motion profile for smooth movement
+    @JvmField var maxPower = 0.75
+    @JvmField var manualPower = 0.8
+
+    /** Velocity compensation gain - INCREASED for faster robot spinning */
+    @JvmField var velocityCompensationGain = 0.25
+
+    @JvmField var alignmentToleranceDeg = 2.0
+
+    /** Predictive lookahead for spinning robots */
+    @JvmField var predictiveGain = 0.3
+
     private val controller = controlSystem {
         posPid(turretPID)
         feedforward(turretFF)
-        interpolator { trapezoidal() }
     }
 
-    @JvmField var minPower = 0.08
-    @JvmField var maxPower = 0.75
-
-    // ============================================
-    // LIMELIGHT RELOCALIZATION CONFIG
-    // ============================================
-    @JvmField var minTagsForRelocalization = 2
-
-    // ============================================
-    // STATE
-    // ============================================
-    var currentState = State.IDLE
-    var manualPower = 0.0
-
-    private val velTimer = ElapsedTime()
-    private var lastHeading = 0.0
-    var angularVelocity = 0.0
-        private set
-
+    // ================================================================
+    // STATE VARIABLES
+    // ================================================================
     private var targetAngle = 0.0
     private var targetVelocity = 0.0
 
+    var angularVelocity = 0.0
+        private set
+
+    private val velTimer = ElapsedTime()
+    private var lastHeading = 0.0
+
     internal var lastCommand: Command? = null
 
-    // ============================================
-    // LIMELIGHT
-    // ============================================
-    private lateinit var limelight: Limelight3A
-    var hasRelocalized = false
-        private set
-    var limelightValid = false
-        private set
-
-    // ============================================
+    // ================================================================
     // INITIALIZATION
-    // ============================================
+    // ================================================================
     override fun initialize() {
         motor.motor.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER
         motor.motor.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
         velTimer.reset()
         
-        limelight = ActiveOpMode.hardwareMap.get(Limelight3A::class.java, "ll")
-        limelight.pipelineSwitch(4)
-        limelight.start()
+        ActiveOpMode.telemetry.addLine("Turret Initialized - Ensure pointing FORWARD")
     }
 
-    // ============================================
+    // ================================================================
     // MAIN LOOP
-    // ============================================
+    // ================================================================
     override fun periodic() {
         updateVelocity()
-        // relocalizeWithLimelight()
 
         when (currentState) {
-            State.IDLE -> motor.power = 0.0
-            State.MANUAL -> motor.power = manualPower.coerceIn(-maxPower, maxPower)
-            State.AIMING -> applyControl()
+            State.IDLE -> {
+                motor.power = 0.0
+            }
+            State.MANUAL -> {
+                // Driver control (joystick input)
+                motor.power = manualPower.coerceIn(-maxPower, maxPower)
+            }
+            State.AIMING -> {
+                // Auto-tracking using PID + feedforward
+                applyControl()
+            }
         }
 
-        val result = limelight.latestResult
-        limelightValid = result != null && result.isValid
-
-        ActiveOpMode.telemetry.addData("Turret State", currentState.name)
-        ActiveOpMode.telemetry.addData("Turret Heading (deg)", "%.1f".format(Math.toDegrees(getHeading())))
-        ActiveOpMode.telemetry.addData("Turret Target (deg)", "%.1f".format(Math.toDegrees(targetAngle)))
-        ActiveOpMode.telemetry.addData("Motor Power", "%.2f".format(motor.power))
-        ActiveOpMode.telemetry.addData("AngVel (rad/s)", "%.2f".format(angularVelocity))
-        ActiveOpMode.telemetry.addData("Has Relocalized", hasRelocalized)
-        ActiveOpMode.telemetry.addData("Limelight Valid", limelightValid)
-        
-        if (limelightValid) {
-            ActiveOpMode.telemetry.addData("Limelight Tags", result!!.fiducialResults.size)
+        // Telemetry for debugging
+        ActiveOpMode.telemetry.run {
+            addData("=== TURRET ===", "")
+            addData("State", currentState.name)
+            addData("Current Angle", "%.1f".format(Math.toDegrees(getHeading())))
+            addData("Target Angle", "%.1f".format(Math.toDegrees(targetAngle)))
+            addData("Error", "%.1f".format(Math.toDegrees(targetAngle - getHeading())))
+            addData("Motor Power", "%.2f".format(motor.power))
+            addData("Angular Vel", "%.2f rad/s".format(angularVelocity))
+            addData("Aligned", if (isAligned()) "YES" else "NO")
         }
     }
 
-    // ============================================
-    // LIMELIGHT RELOCALIZATION
-    // ============================================
-    private fun relocalizeWithLimelight() {
-        val currentPose = follower.pose
-        limelight.updateRobotOrientation(Math.toDegrees(currentPose.heading))
-        
-        val result: LLResult? = limelight.latestResult
-        if (result == null || !result.isValid) return
-        
-        if (result.fiducialResults.size < minTagsForRelocalization) return
-        
-        val botpose = result.botpose_MT2 ?: return
-        val xInches = botpose.position.x * 39.3701
-        val yInches = botpose.position.y * 39.3701
-        val yawRad = Math.toRadians(botpose.orientation.yaw)
-        
-        follower.pose = Pose(xInches, yInches, yawRad)
-        hasRelocalized = true
-    }
-
-    // ============================================
-    // CONTROL - IMPROVED VERSION
-    // ============================================
+    // ================================================================
+    // CONTROL
+    // ================================================================
     private fun applyControl() {
-        // Use NextControl properly - pass goal position, it handles velocity internally
         controller.goal = KineticState(angleToTicks(targetAngle))
         
-        // Calculate motor power using NextControl
-        motor.power = controller.calculate(motor.state).coerceIn(-maxPower, maxPower)
+        val calculatedPower = controller.calculate(motor.state)
+        
+        motor.power = calculatedPower.coerceIn(-maxPower, maxPower)
     }
 
     private fun updateVelocity() {
         val dt = velTimer.seconds()
         if (dt > 0.001) {
             val currentHeading = getHeading()
-            val delta = normalizeAngle(currentHeading - lastHeading)
-            angularVelocity = delta / dt
+            val deltaAngle = normalizeAngle(currentHeading - lastHeading)
+            
+            angularVelocity = deltaAngle / dt
             lastHeading = currentHeading
+            
             velTimer.reset()
         }
     }
 
-    // ============================================
+    // ================================================================
     // PUBLIC API
-    // ============================================
-    fun aimAt(targetPose: Pose, botPose: Pose, velocityComp: Boolean = false) {
+    // ================================================================
+    
+    /**
+     * Aim at a field-space target pose
+     * Uses predictive targeting to account for robot spinning
+     */
+    fun aimAt(targetPose: Pose, botPose: Pose, velocityComp: Boolean = true) {
+        // Calculate field-absolute angle to target
         val fieldAngle = atan2(
-            targetPose.y - botPose.y,
-            targetPose.x - botPose.x
+            targetPose.y - botPose.y,  // ΔY
+            targetPose.x - botPose.x   // ΔX
         )
-        val angleRad = normalizeAngle(fieldAngle - botPose.heading)
-        
+
+        // Predictive targeting - compensates for robot rotation
+        val predictiveOffset = angularVelocity * predictiveGain
+
+        // Convert to robot-relative angle (turret reference frame)
+        val robotRelativeAngle = normalizeAngle(fieldAngle - botPose.heading + predictiveOffset)
+
+        // Set target and switch to aiming mode
         currentState = State.AIMING
-        setTarget(angleRad, velocityComp)
+        setTarget(robotRelativeAngle, velocityComp)
     }
 
     fun setTarget(angleRad: Double, velocityComp: Boolean = false) {
+        // Convert limits to radians
         val minRad = degToRad(MIN_ANGLE_DEG)
         val maxRad = degToRad(MAX_ANGLE_DEG)
-        
+
+        // Clamp to mechanical limits
         targetAngle = angleRad.coerceIn(minRad, maxRad)
-        
-        // Velocity compensation for when robot is turning
-        targetVelocity = if (velocityComp) -angularVelocity * 0.15 else 0.0
+
+        // Velocity compensation - predicts where turret needs to be
+        targetVelocity = if (velocityComp) {
+            -angularVelocity * velocityCompensationGain
+        } else {
+            0.0
+        }
     }
 
     fun setManual(power: Double) {
@@ -205,13 +212,31 @@ object Turret : Subsystem {
     fun stop() {
         currentState = State.IDLE
         motor.power = 0.0
+
+        // Cancel any scheduled commands
         lastCommand?.let {
             CommandManager.cancelCommand(it)
             lastCommand = null
         }
     }
 
-    fun getHeading(): Double = normalizeAngle(motor.currentPosition.toDouble() / TICKS_PER_RADIAN)
+    fun getHeading(): Double {
+        return normalizeAngle(motor.currentPosition.toDouble() / TICKS_PER_RADIAN)
+    }
+
+    fun isAligned(toleranceDeg: Double = alignmentToleranceDeg): Boolean {
+        val errorRad = normalizeAngle(targetAngle - getHeading())
+        val errorDeg = Math.toDegrees(abs(errorRad))
+        return errorDeg < toleranceDeg
+    }
+
+    fun registerCommand(command: Command) {
+        // Cancel previous command if different
+        if (lastCommand != null && lastCommand != command) {
+            CommandManager.cancelCommand(lastCommand!!)
+        }
+        lastCommand = command
+    }
 
     fun normalizeAngle(angle: Double): Double {
         var a = angle % (2 * PI)
@@ -220,16 +245,15 @@ object Turret : Subsystem {
         return a
     }
 
-    fun registerCommand(command: Command) {
-        if (lastCommand != null && lastCommand != command) {
-            CommandManager.cancelCommand(lastCommand!!)
-        }
-        lastCommand = command
+    private fun angleToTicks(rad: Double): Double {
+        return rad * TICKS_PER_RADIAN
     }
 
-    fun isAligned(toleranceDeg: Double = 2.0): Boolean = 
-        abs(Math.toDegrees(normalizeAngle(targetAngle - getHeading()))) < toleranceDeg
+    private fun degToRad(deg: Double): Double {
+        return deg * PI / 180.0
+    }
 
-    private fun angleToTicks(rad: Double) = rad * TICKS_PER_RADIAN
-    private fun degToRad(deg: Double) = deg * PI / 180.0
+    private fun radToDeg(rad: Double): Double {
+        return rad * 180.0 / PI
+    }
 }
