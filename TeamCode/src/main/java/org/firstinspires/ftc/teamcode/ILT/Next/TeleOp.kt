@@ -2,6 +2,8 @@
 
 package org.firstinspires.ftc.teamcode.TeleOp
 
+import com.bylazar.ftcontrol.panels.Panels
+import com.bylazar.ftcontrol.panels.integration.TelemetryManager
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import dev.nextftc.core.components.SubsystemComponent
 import dev.nextftc.extensions.pedro.PedroComponent.Companion.follower
@@ -26,6 +28,9 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants
 
 @TeleOp(name = "Red TeleOp", group = "TeleOp")
 class TeleOpRed : NextFTCOpMode() {
+    // Panels telemetry - add this for live dashboard
+    private val panelsTelemetry: TelemetryManager = Panels.getTelemetry()
+    
     init {
         includePedro(Constants::createFollower)
         addSubsystems(Shooter, Turret, Hood, Drive, Intake)
@@ -90,6 +95,15 @@ class TeleOpRed : NextFTCOpMode() {
 
     override fun onUpdate() {
         Shooter.update()
-        telemetry.update()
+        
+        // Send telemetry to Panels dashboard
+        panelsTelemetry.debug("Pose X: ${follower.pose.x}")
+        panelsTelemetry.debug("Pose Y: ${follower.pose.y}")
+        panelsTelemetry.debug("Heading: ${follower.pose.heading}")
+        panelsTelemetry.debug("Flywheel State: ${Shooter.flywheelState}")
+        panelsTelemetry.debug("Alliance: ${ROBOT.currAlliance}")
+        
+        // Update both Panels and Driver Station
+        panelsTelemetry.update(telemetry)
     }
 }
